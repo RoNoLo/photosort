@@ -1,0 +1,20 @@
+{
+  "name": "ronolo/photosort",
+  "description": "Sorts images by date into a folder structure of YYYY/YYMM/YYMMDD structure",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Ronald Locke"
+    }
+  ],
+  "autoload": {
+    "classmap": [
+      "src/",
+      "cli/"
+    ]
+  },
+  "require": {
+    "psr/log": "1.0.2"
+  }
+}
