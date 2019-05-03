@@ -95,7 +95,7 @@ Let's assume the following bash call: photosort.php --source /foo --destination 
    |
 [Create directory /home/myimages/2019/1904/190403 (if needed) and move file]
    | 
-[End. The source file if deleted at this point]
+[End. The source file is deleted at this point and the next file is processed until source directory is empty]
 ```
 
 The file moving is extra save, to check before and after the copy / move process if the image exists at the source and destination location.
@@ -106,3 +106,4 @@ If after the copy the image will not be readable, the source is not deleted and 
 - read EXIF capture date from the image files as first option (second would be file date)
 - support more file extensions
 - read EXIF and rotate image if needed (would be wonderful, but I guess a re-encoding of the image will happen)
+- extract dates from the filename (like WhatsApp filenames) to correctly store the files
