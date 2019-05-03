@@ -103,7 +103,9 @@ If after the copy the image will not be readable, the source is not deleted and 
 
 ## Possible Improvements 
 
+- run an external (?) file date processor automatically first (like exec jhead -ft **/*.jpg in source directory)
 - read EXIF capture date from the image files as first option (second would be file date)
 - support more file extensions
 - read EXIF and rotate image if needed (would be wonderful, but I guess a re-encoding of the image will happen)
 - extract dates from the filename (like WhatsApp filenames) to correctly store the files
+- option to just copy and not move the images
