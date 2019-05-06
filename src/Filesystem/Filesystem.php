@@ -2,17 +2,20 @@
 
 namespace RoNoLo\PhotoSort\Filesystem;
 
-use mysql_xdevapi\Exception;
 use Symfony\Component\Filesystem\Exception\IOException;
 
 class Filesystem extends \Symfony\Component\Filesystem\Filesystem
 {
     public function hash(\SplFileInfo $file)
     {
-        $contents = @file_get_contents($file->getPathname());
+        if ($file->isDir()) {
+            throw new IOException('A directory cannot be hashed.');
+        }
+
+        $contents = @file_get_contents($file->getRealPath());
 
         if (empty($contents)) {
-            throw new Exception("File was empty");
+            throw new \Exception("File was empty");
         }
 
         return sha1($contents);
@@ -27,11 +30,11 @@ class Filesystem extends \Symfony\Component\Filesystem\Filesystem
             throw new IOException('The directory does not exists.');
         }
 
+        $flags = \FilesystemIterator::SKIP_DOTS;
         if ($recursive) {
-            $flags = \FilesystemIterator::SKIP_DOTS;
             return new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($targetDir, $flags), \RecursiveIteratorIterator::CHILD_FIRST);
         }
 
-        return new \IteratorIterator(new \DirectoryIterator($targetDir));
+        return new \FilesystemIterator($targetDir, $flags);
     }
 }
