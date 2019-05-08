@@ -54,7 +54,7 @@ class HashmapCommandTest extends TestCase
         $app = new Application();
         $app->add(new HashmapCommand());
 
-        $command = $app->find('ps:hash-map');
+        $command = $app->find('hash-map');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
