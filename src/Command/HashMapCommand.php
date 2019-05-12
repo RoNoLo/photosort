@@ -10,7 +10,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 
-class HashmapCommand extends Command
+class HashMapCommand extends Command
 {
     protected static $defaultName = 'hash-map';
 
@@ -64,8 +64,8 @@ class HashmapCommand extends Command
 
         $result['source'] = realpath($source);
         $result['created'] = date('r');
-        $result['hash_to_path'] = $hash2path;
-        $result['path_to_hash'] = $path2hash;
+        $result['hashs'] = $hash2path;
+        $result['paths'] = $path2hash;
 
         $fs->dumpFile($source . DIRECTORY_SEPARATOR . '/photosort_hashmap.json', json_encode($result, JSON_PRETTY_PRINT));
     }

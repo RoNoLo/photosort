@@ -31,7 +31,7 @@ class PhotoSortCommandTest extends TestCase
         $hashs = $this->_setupHashingImagesRecursive();
 
         $app = new Application();
-        $app->add(new HashmapCommand());
+        $app->add(new HashMapCommand());
 
         $command = $app->find('ps:hash-map');
         $commandTester = new CommandTester($command);
@@ -57,7 +57,7 @@ class PhotoSortCommandTest extends TestCase
         $hashs = $this->_setupHashingImagesNotRecursive();
 
         $app = new Application();
-        $app->add(new HashmapCommand());
+        $app->add(new HashMapCommand());
 
         $command = $app->find('ps:hash-map');
         $commandTester = new CommandTester($command);

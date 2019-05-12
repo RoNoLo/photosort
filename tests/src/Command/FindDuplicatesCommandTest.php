@@ -7,7 +7,7 @@ use RoNoLo\PhotoSort\Filesystem\Filesystem;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class DuplicateCheckCommandTest extends TestCase
+class FindDuplicatesCommandTest extends TestCase
 {
     var $testSourcePath;
 
@@ -31,8 +31,8 @@ class DuplicateCheckCommandTest extends TestCase
         $hashs = $this->_setupHashingImagesRecursive();
 
         $app = new Application();
-        $app->add(new DuplicateCheckCommand());
-        $app->add(new HashmapCommand());
+        $app->add(new FindDuplicatesCommand());
+        $app->add(new HashMapCommand());
 
         $command = $app->find('find-duplicates');
         $commandTester = new CommandTester($command);

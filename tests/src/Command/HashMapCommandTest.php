@@ -7,7 +7,7 @@ use RoNoLo\PhotoSort\Filesystem\Filesystem;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class HashmapCommandTest extends TestCase
+class HashMapCommandTest extends TestCase
 {
     var $testPath;
 
@@ -26,7 +26,7 @@ class HashmapCommandTest extends TestCase
         $hashs = $this->_setupHashingImagesRecursive();
 
         $app = new Application();
-        $app->add(new HashmapCommand());
+        $app->add(new HashMapCommand());
 
         $command = $app->find('hash-map');
         $commandTester = new CommandTester($command);
@@ -42,7 +42,7 @@ class HashmapCommandTest extends TestCase
         $array = json_decode($json, JSON_PRETTY_PRINT);
 
         foreach ($hashs as $path => $hash) {
-            $this->assertArrayHasKey($path, $array['path_to_hash']);
+            $this->assertArrayHasKey($path, $array['paths']);
         }
     }
 
@@ -51,7 +51,7 @@ class HashmapCommandTest extends TestCase
         $hashs = $this->_setupHashingImagesNotRecursive();
 
         $app = new Application();
-        $app->add(new HashmapCommand());
+        $app->add(new HashMapCommand());
 
         $command = $app->find('hash-map');
         $commandTester = new CommandTester($command);
@@ -66,7 +66,7 @@ class HashmapCommandTest extends TestCase
         $array = json_decode($json, JSON_PRETTY_PRINT);
 
         foreach ($hashs as $path => $hash) {
-            $this->assertArrayHasKey($path, $array['path_to_hash']);
+            $this->assertArrayHasKey($path, $array['paths']);
         }
     }
 
