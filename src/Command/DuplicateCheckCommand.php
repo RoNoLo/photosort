@@ -111,7 +111,11 @@ class DuplicateCheckCommand extends Command
     {
         $this->counter++;
 
-        $this->result[$file->getRealPath()][$hash] = $destinationFilePath;
+        $data = [];
+        $data[] = $file->getRealPath();
+        $data = array_merge($data, $destinationFilePath);
+
+        $this->result[$hash] = $data;
     }
 
     private function writeResultFile($sourceFilePath, $resultFile)

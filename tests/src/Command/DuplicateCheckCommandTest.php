@@ -43,6 +43,22 @@ class DuplicateCheckCommandTest extends TestCase
         ]);
 
         $this->assertFileExists($this->testSourcePath . DIRECTORY_SEPARATOR . 'photosort_duplicates.json');
+
+        $json = file_get_contents($this->testSourcePath . DIRECTORY_SEPARATOR . 'photosort_duplicates.json');
+        $array = json_decode($json, JSON_PRETTY_PRINT);
+
+        $this->assertEquals(2, count($array['9fa5a76bf8651d38f7a6a14050bfdda559777f5e']));
+        $this->assertEquals(2, count($array['0e34f2bbf52b4726c34d1cb883fc2aced67bc9f6']));
+        $this->assertEquals(2, count($array['971ae892b512354d55298491132baec4e5848b11']));
+        $this->assertEquals(4, count($array['4dd8c909f792f4dc7438a618b7d4237a07a33917']));
+        $this->assertEquals(4, count($array['02e4e7c7f6a88fb4feafa146044cae625e7cae4c']));
+        $this->assertEquals(4, count($array['22de714263a4003615789d4ec22019f4d8e4c4a9']));
+        $this->assertEquals(2, count($array['5c91ca14a865d1c639c074a2478c702b8c3e65f5']));
+        $this->assertEquals(2, count($array['2b3df5bdf4f085049dd3eb51ea1b158344b87235']));
+        $this->assertEquals(2, count($array['c180847d4ddbfd15e928d7a5f5d1751e210fa40e']));
+        $this->assertEquals(2, count($array['906d1b7dd147799a58b2044f1a3e211af3f4f7dc']));
+        $this->assertEquals(2, count($array['a7acf3c92eafd5b43d5c2de3d22592c96e7d4386']));
+        $this->assertEquals(2, count($array['d2c3ee8152e607cee61ac6f84b4ec15fcb02335b']));
     }
 
     public function tearDown()

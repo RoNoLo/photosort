@@ -12,13 +12,11 @@ class Filesystem extends \Symfony\Component\Filesystem\Filesystem
             throw new IOException('A directory cannot be hashed.');
         }
 
-        $contents = @file_get_contents($file->getRealPath());
-
-        if (empty($contents)) {
-            throw new \Exception("File was empty");
+        if (!$file->isReadable()) {
+            throw new IOException("Could not read file content.");
         }
 
-        return sha1($contents);
+        return sha1_file($file->getRealPath());
     }
 
     public function files($targetDir, $recursive = false)

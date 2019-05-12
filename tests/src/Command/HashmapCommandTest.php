@@ -28,7 +28,7 @@ class HashmapCommandTest extends TestCase
         $app = new Application();
         $app->add(new HashmapCommand());
 
-        $command = $app->find('ps:hash-map');
+        $command = $app->find('hash-map');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
@@ -36,14 +36,13 @@ class HashmapCommandTest extends TestCase
             '--recursive'
         ]);
 
-        $this->assertFileExists($this->testPath . DIRECTORY_SEPARATOR . 'photosort_path2hash.json');
-        $this->assertFileExists($this->testPath . DIRECTORY_SEPARATOR . 'photosort_hash2path.json');
+        $this->assertFileExists($this->testPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
 
-        $json = file_get_contents($this->testPath . DIRECTORY_SEPARATOR . 'photosort_path2hash.json');
+        $json = file_get_contents($this->testPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
         $array = json_decode($json, JSON_PRETTY_PRINT);
 
         foreach ($hashs as $path => $hash) {
-            $this->assertArrayHasKey($path, $array);
+            $this->assertArrayHasKey($path, $array['path_to_hash']);
         }
     }
 
@@ -61,14 +60,13 @@ class HashmapCommandTest extends TestCase
             'source' => $this->testPath
         ]);
 
-        $this->assertFileExists($this->testPath . DIRECTORY_SEPARATOR . 'photosort_path2hash.json');
-        $this->assertFileExists($this->testPath . DIRECTORY_SEPARATOR . 'photosort_hash2path.json');
+        $this->assertFileExists($this->testPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
 
-        $json = file_get_contents($this->testPath . DIRECTORY_SEPARATOR . 'photosort_path2hash.json');
+        $json = file_get_contents($this->testPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
         $array = json_decode($json, JSON_PRETTY_PRINT);
 
         foreach ($hashs as $path => $hash) {
-            $this->assertArrayHasKey($path, $array);
+            $this->assertArrayHasKey($path, $array['path_to_hash']);
         }
     }
 

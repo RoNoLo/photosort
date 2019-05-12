@@ -8,6 +8,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Filesystem\Exception\IOException;
 
 class HashmapCommand extends Command
 {
@@ -16,7 +17,7 @@ class HashmapCommand extends Command
     protected function configure()
     {
         $this->setDescription('Creates an hashmap on every file in a path');
-        $this->setHelp('This command allows you to create a user...');
+        $this->setHelp('Creates two hashmap files, which may help to find duplicate files quicker.');
 
         $this->addArgument('source', InputArgument::REQUIRED, 'Source directory');
         $this->addOption('recursive', 'r', InputOption::VALUE_OPTIONAL, 'Recursive', true);
@@ -44,14 +45,28 @@ class HashmapCommand extends Command
                 continue;
             }
 
-            $hash = $fs->hash($file);
-            $path = $file->getRealPath();
+            try {
+                $path = $file->getRealPath();
+                $hash = $fs->hash($file);
 
-            $hash2path[$hash][] = $path;
-            $path2hash[$path] = $hash;
+                if ($output->isVerbose()) {
+                    $output->writeln('Hashed: ' . $path);
+                }
+
+                $hash2path[$hash][] = $path;
+                $path2hash[$path] = $hash;
+            } catch (IOException $e) {
+                if ($output->isVeryVerbose()) {
+                    $output->writeln('IO Error: ' . $e->getMessage());
+                }
+            }
         }
 
-        $fs->dumpFile($source . DIRECTORY_SEPARATOR . '/photosort_hash2path.json', json_encode($hash2path, JSON_PRETTY_PRINT));
-        $fs->dumpFile($source . DIRECTORY_SEPARATOR . '/photosort_path2hash.json', json_encode($path2hash, JSON_PRETTY_PRINT));
+        $result['source'] = realpath($source);
+        $result['created'] = date('r');
+        $result['hash_to_path'] = $hash2path;
+        $result['path_to_hash'] = $path2hash;
+
+        $fs->dumpFile($source . DIRECTORY_SEPARATOR . '/photosort_hashmap.json', json_encode($result, JSON_PRETTY_PRINT));
     }
 }
