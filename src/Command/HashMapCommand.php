@@ -39,6 +39,7 @@ class HashMapCommand extends Command
         $files = $fs->files($source, $recursive);
 
         $hash2path = $path2hash = [];
+        $emptyHash = null;
         /** @var \SplFileInfo $file */
         foreach ($files as $file) {
             if ($file->isDir()) {
@@ -48,6 +49,10 @@ class HashMapCommand extends Command
             try {
                 $path = $file->getRealPath();
                 $hash = $fs->hash($file);
+
+                if ($file->getSize() === 0) {
+                    $emptyHash = $hash;
+                }
 
                 if ($output->isVerbose()) {
                     $output->writeln('Hashed: ' . $path);
@@ -64,6 +69,7 @@ class HashMapCommand extends Command
 
         $result['source'] = realpath($source);
         $result['created'] = date('r');
+        $result['empty_hash'] = $emptyHash;
         $result['hashs'] = $hash2path;
         $result['paths'] = $path2hash;
 

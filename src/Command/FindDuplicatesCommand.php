@@ -35,7 +35,6 @@ class FindDuplicatesCommand extends Command
 
         $this->addArgument('source', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination', InputArgument::REQUIRED, 'Destination directory root');
-        $this->addOption('delete-duplicates-from-source', 'd', InputOption::VALUE_OPTIONAL, 'Delete files were duplicates in destination folder sturcture were found', false);
         $this->addOption('result-file', 'rf', InputOption::VALUE_OPTIONAL, 'Name of the result file', 'photosort_duplicates.json');
     }
 
@@ -53,7 +52,6 @@ class FindDuplicatesCommand extends Command
         $this->ensureSource($source);
         $this->ensureDestination($destination);
 
-        $delete = !!$input->getOption('delete-duplicates-from-source');
         $resultFile = $input->getOption('result-file');
 
         $files = $this->fs->files($source, true);
