@@ -1,8 +1,7 @@
 <?php
 
-namespace RoNoLo\PhotoSort\Command;
+namespace App\Command;
 
-use RoNoLo\PhotoSort\Filesystem\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
@@ -10,10 +9,11 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
 
 class FindDuplicatesCommand extends Command
 {
-    protected static $defaultName = 'find-duplicates';
+    protected static $defaultName = 'photosort:find-duplicates';
 
     private $fs;
 

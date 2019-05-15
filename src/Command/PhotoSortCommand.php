@@ -1,17 +1,17 @@
 <?php
 
-namespace RoNoLo\PhotoSort\Command;
+namespace App\Command;
 
-use RoNoLo\PhotoSort\Filesystem\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Filesystem\Filesystem;
 
 class PhotoSortCommand extends Command
 {
-    protected static $defaultName = 'photo-sort';
+    protected static $defaultName = 'photosort:photo-sort';
 
     private $fs;
 

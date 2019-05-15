@@ -1,18 +1,18 @@
 <?php
 
-namespace RoNoLo\PhotoSort\Command;
+namespace App\Command;
 
-use RoNoLo\PhotoSort\Filesystem\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
 
 class AnalyseDuplicatesCommand extends Command
 {
-    protected static $defaultName = 'analyse-duplicates';
+    protected static $defaultName = 'photosort:analyse-duplicates';
 
     private $fs;
 

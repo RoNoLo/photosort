@@ -1,25 +1,28 @@
 <?php
 
-namespace RoNoLo\PhotoSort\Command;
+namespace App\Command;
 
-use RoNoLo\PhotoSort\Filesystem\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
-class HashMapCommand extends ContainerAwareCommand
+class HashMapCommand extends Command
 {
-    protected static $defaultName = 'hash-map';
+    protected static $defaultName = 'photosort:hash-map';
 
-    private $fs;
+    private $finder;
+
+    private $fileSystem;
 
     public function __construct(string $name = null)
     {
-        $this->fs = new Filesystem();
+        $this->finder = new Finder();
+        $this->filesystem = new Filesystem();
 
         parent::__construct($name);
     }
@@ -31,8 +34,6 @@ class HashMapCommand extends ContainerAwareCommand
 
         $this->addArgument('source', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('output-path', InputArgument::OPTIONAL, 'Path to output file', null);
-        $this->addOption('recursive', 'r', InputOption::VALUE_OPTIONAL, 'Recursive', true);
-        // $this->addOption('file-extensions', 'e', InputOption::VALUE_OPTIONAL, 'List of extensions to process', '\.jpe?g');
     }
 
     /**
@@ -43,18 +44,11 @@ class HashMapCommand extends ContainerAwareCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->getC
-
         try {
             $source = $input->getArgument('source');
             $outputPath = $input->getArgument('output-path');
-            $recursive = !!$input->getOption('recursive');
-//            $fileExtensions = $input->getOption('file-extensions');
-//            $fileExtensions = $this->ensureFileExtensions($fileExtensions);
 
-            $finder = new Finder();
-
-            $files = $finder->files()->name('/\.jpe?g/')->in($source);
+            $files = $this->finder->files()->name('/\.jpe?g/')->in($source);
 
             $hash2path = $path2hash = [];
             $emptyHash = null;
@@ -67,7 +61,7 @@ class HashMapCommand extends ContainerAwareCommand
 
                 try {
                     $path = $file->getRealPath();
-                    $hash = $this->fs->hash($file);
+                    $hash = sha1_file($file);
 
                     if ($file->getSize() === 0) {
                         $emptyHash = $hash;
@@ -98,7 +92,12 @@ class HashMapCommand extends ContainerAwareCommand
             $result['hashs'] = $hash2path;
             $result['paths'] = $path2hash;
             $outputFile = $this->ensureOutputFile($outputPath, $source);
-            $this->fs->dumpFile($outputFile, json_encode($result, JSON_PRETTY_PRINT));
+
+            $this->filesystem->dumpFile($outputFile, json_encode($result, JSON_PRETTY_PRINT));
+
+            if ($output->isVerbose()) {
+                $output->writeln('Result: ' . $outputFile);
+            }
         } catch (\Exception $e) {
             die ("Error: " . $e->getMessage());
         }
@@ -110,7 +109,7 @@ class HashMapCommand extends ContainerAwareCommand
             return $sourcePath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
         }
 
-        if ($this->fs->exists($outputPath)) {
+        if ($this->finder->exists($outputPath)) {
             $realpath = realpath($outputPath);
 
             if (is_dir($realpath)) {
@@ -133,23 +132,4 @@ class HashMapCommand extends ContainerAwareCommand
 
         return APP_PATH . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
     }
-
-//    private function ensureFileExtensions(?string $fileExtensions)
-//    {
-//        if (is_null($fileExtensions)) {
-//            throw new \InvalidArgumentException("No file extensions were given to process. Use `*` to include all file types.");
-//        }
-//
-//        if (is_string($fileExtensions) && !empty($fileExtensions)) {
-//            if ($fileExtensions === '*') {
-//                return [];
-//            }
-//        }
-//
-//        $parts = explode(',', $fileExtensions);
-//        $parts = array_map('trim', $parts);
-//        $parts = array_filter($parts);
-//
-//        return $parts;
-//    }
 }
