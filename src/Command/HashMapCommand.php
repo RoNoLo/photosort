@@ -14,13 +14,24 @@ class HashMapCommand extends Command
 {
     protected static $defaultName = 'hash-map';
 
+    private $fs;
+
+    public function __construct(string $name = null)
+    {
+        $this->fs = new Filesystem();
+
+        parent::__construct($name);
+    }
+
     protected function configure()
     {
         $this->setDescription('Creates an hashmap on every file in a path');
         $this->setHelp('Creates two hashmap files, which may help to find duplicate files quicker.');
 
         $this->addArgument('source', InputArgument::REQUIRED, 'Source directory');
+        $this->addArgument('output-path', InputArgument::OPTIONAL, 'Path to output file', null);
         $this->addOption('recursive', 'r', InputOption::VALUE_OPTIONAL, 'Recursive', true);
+        $this->addOption('file-extensions', 'e', InputOption::VALUE_OPTIONAL, 'List of extensions to process', 'jpg, jpeg');
     }
 
     /**
@@ -31,48 +42,108 @@ class HashMapCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $fs = new Filesystem();
 
-        $source = $input->getArgument('source');
-        $recursive = !!$input->getOption('recursive');
+        try {
+            $source = $input->getArgument('source');
+            $outputPath = $input->getArgument('output-path');
+            $recursive = !!$input->getOption('recursive');
+            $fileExtensions = $input->getOption('file-extensions');
+            $fileExtensions = $this->ensureFileExtensions($fileExtensions);
+            $files = $this->fs->files($source, $recursive, $fileExtensions);
+            $hash2path = $path2hash = [];
+            $emptyHash = null;
+            $errors = [];
+            /** @var \SplFileInfo $file */
+            foreach ($files as $file) {
+                if ($file->isDir()) {
+                    continue;
+                }
 
-        $files = $fs->files($source, $recursive);
+                try {
+                    $path = $file->getRealPath();
+                    $hash = $this->fs->hash($file);
 
-        $hash2path = $path2hash = [];
-        $emptyHash = null;
-        /** @var \SplFileInfo $file */
-        foreach ($files as $file) {
-            if ($file->isDir()) {
-                continue;
+                    if ($file->getSize() === 0) {
+                        $emptyHash = $hash;
+                    }
+
+                    if ($output->isVerbose()) {
+                        $output->writeln('Hashed: ' . $hash . ': ' . $path);
+                    }
+
+                    $hash2path[$hash][] = $path;
+                    $path2hash[$path] = $hash;
+                } catch (IOException $e) {
+                    if ($output->isVeryVerbose()) {
+                        $output->writeln('IO Error: ' . $e->getMessage());
+                    }
+                    $errors[$path] = $e->getMessage();
+                } catch (\Exception $e) {
+                    if ($output->isVeryVerbose()) {
+                        $output->writeln('Error: ' . $e->getMessage());
+                    }
+                    $errors[$path] = $e->getMessage();
+                }
+            }
+            $result['source'] = realpath($source);
+            $result['created'] = date('r');
+            $result['empty_hash'] = $emptyHash;
+            $result['errors'] = $errors;
+            $result['hashs'] = $hash2path;
+            $result['paths'] = $path2hash;
+            $outputFile = $this->ensureOutputFile($outputPath, $source);
+            $this->fs->dumpFile($outputFile, json_encode($result, JSON_PRETTY_PRINT));
+        } catch (\Exception $e) {
+            die ("Error: " . $e->getMessage());
+        }
+    }
+
+    private function ensureOutputFile(?string $outputPath, $sourcePath)
+    {
+        if (is_null($outputPath)) {
+            return $sourcePath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+        }
+
+        if ($this->fs->exists($outputPath)) {
+            $realpath = realpath($outputPath);
+
+            if (is_dir($realpath)) {
+                return $realpath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
             }
 
-            try {
-                $path = $file->getRealPath();
-                $hash = $fs->hash($file);
+            return $realpath;
+        }
 
-                if ($file->getSize() === 0) {
-                    $emptyHash = $hash;
-                }
+        $pathInfo = pathinfo($outputPath);
 
-                if ($output->isVerbose()) {
-                    $output->writeln('Hashed: ' . $path);
-                }
+        // Is it just a filename?
+        if ($pathInfo['filename'] == $outputPath && $pathInfo['extension'] == 'json') {
+            return __DIR__ . DIRECTORY_SEPARATOR . $outputPath;
+        }
 
-                $hash2path[$hash][] = $path;
-                $path2hash[$path] = $hash;
-            } catch (IOException $e) {
-                if ($output->isVeryVerbose()) {
-                    $output->writeln('IO Error: ' . $e->getMessage());
-                }
+        if (empty($pathInfo['filename']) && !empty($pathInfo['dirname'])) {
+            return $pathInfo['dirname'] . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+        }
+
+        return __DIR__ . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+    }
+
+    private function ensureFileExtensions(?string $fileExtensions)
+    {
+        if (is_null($fileExtensions)) {
+            throw new \InvalidArgumentException("No file extensions were given to process. Use `*` to include all file types.");
+        }
+
+        if (is_string($fileExtensions) && !empty($fileExtensions)) {
+            if ($fileExtensions === '*') {
+                return [];
             }
         }
 
-        $result['source'] = realpath($source);
-        $result['created'] = date('r');
-        $result['empty_hash'] = $emptyHash;
-        $result['hashs'] = $hash2path;
-        $result['paths'] = $path2hash;
+        $parts = explode(',', $fileExtensions);
+        $parts = array_map('trim', $parts);
+        $parts = array_filter($parts);
 
-        $fs->dumpFile($source . DIRECTORY_SEPARATOR . '/photosort_hashmap.json', json_encode($result, JSON_PRETTY_PRINT));
+        return $parts;
     }
 }

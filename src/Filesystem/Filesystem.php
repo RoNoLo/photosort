@@ -19,7 +19,7 @@ class Filesystem extends \Symfony\Component\Filesystem\Filesystem
         return sha1_file($file->getRealPath());
     }
 
-    public function files($targetDir, $recursive = false)
+    public function files($targetDir, $recursive = false, array $extensions = [])
     {
         $targetDir = rtrim($targetDir, '/\\');
 
@@ -29,10 +29,33 @@ class Filesystem extends \Symfony\Component\Filesystem\Filesystem
         }
 
         $flags = \FilesystemIterator::SKIP_DOTS;
-        if ($recursive) {
-            return new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($targetDir, $flags), \RecursiveIteratorIterator::CHILD_FIRST);
+
+        // not recursive
+        if (!$recursive) {
+            // No extension filtered
+            if (!count($extensions)) {
+                return new \FilesystemIterator($targetDir, $flags);
+            }
+
+            return new \ExtensionFilterIterator(
+                new \FilesystemIterator($targetDir, $flags),
+                $extensions
+            );
         }
 
-        return new \FilesystemIterator($targetDir, $flags);
+        if (!count($extensions)) {
+            return new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($targetDir, $flags),
+                \RecursiveIteratorIterator::CHILD_FIRST
+            );
+        }
+
+        return new \RecursiveIteratorIterator(
+            new \ExtensionRecursiveFilterIterator(
+                new \RecursiveDirectoryIterator($targetDir, $flags),
+                $extensions
+            ),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
     }
 }

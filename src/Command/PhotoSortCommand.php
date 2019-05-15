@@ -13,6 +13,15 @@ class PhotoSortCommand extends Command
 {
     protected static $defaultName = 'photo-sort';
 
+    private $fs;
+
+    public function __construct(string $name = null)
+    {
+        $this->fs = new Filesystem();
+
+        parent::__construct($name);
+    }
+
     protected function configure()
     {
         $this->setDescription('Copies or moves images into a folder structure');
@@ -20,7 +29,8 @@ class PhotoSortCommand extends Command
 
         $this->addArgument('source', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination', InputArgument::REQUIRED, 'Destination directory root');
-        $this->addOption('copy', null, InputOption::VALUE_OPTIONAL, 'Copy files instead of moving', false);
+        $this->addOption('copy', 'c', InputOption::VALUE_OPTIONAL, 'Copy files instead of moving', false);
+        $this->addOption('use-hashmap', 'h', InputOption::VALUE_OPTIONAL, 'Use hashmap file to find duplicates', false);
     }
 
     /**
@@ -31,13 +41,12 @@ class PhotoSortCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $fs = new Filesystem();
-
         $source = $input->getArgument('source');
         $destination = $input->getArgument('destination');
-        $copy = !!$input->getOption('recursive');
+        $copy = !!$input->getOption('copy');
+        $useHashMap = !!$input->getOption('use-hashmap');
 
-        $files = $fs->files($source, true);
+        $files = $this->fs->files($source, true);
 
         /** @var \SplFileInfo $file */
         foreach ($files as $file) {
@@ -45,7 +54,7 @@ class PhotoSortCommand extends Command
                 continue;
             }
 
-            $foo = 1;
+            $photoDate = $file->getMTime();
         }
     }
 }
