@@ -17,7 +17,7 @@ class HashMapCommand extends Command
 
     private $finder;
 
-    private $fileSystem;
+    private $filesystem;
 
     public function __construct(string $name = null)
     {
@@ -109,7 +109,7 @@ class HashMapCommand extends Command
             return $sourcePath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
         }
 
-        if ($this->finder->exists($outputPath)) {
+        if ($this->filesystem->exists($outputPath)) {
             $realpath = realpath($outputPath);
 
             if (is_dir($realpath)) {

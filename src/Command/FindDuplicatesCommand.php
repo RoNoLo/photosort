@@ -10,12 +10,15 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
 
 class FindDuplicatesCommand extends Command
 {
     protected static $defaultName = 'photosort:find-duplicates';
 
-    private $fs;
+    private $filesystem;
+
+    private $finder;
 
     private $counter = 0;
 
@@ -23,7 +26,8 @@ class FindDuplicatesCommand extends Command
 
     public function __construct(string $name = null)
     {
-        $this->fs = new Filesystem();
+        $this->filesystem = new Filesystem();
+        $this->finder = new Finder();
 
         parent::__construct($name);
     }
@@ -54,7 +58,7 @@ class FindDuplicatesCommand extends Command
 
         $resultFile = $input->getOption('result-file');
 
-        $files = $this->fs->files($source, true);
+        $files = $this->finder->files()->name('/\.jpe?g/')->in($source);
 
         $this->ensureHashMaps($destination, $output);
 
@@ -67,7 +71,7 @@ class FindDuplicatesCommand extends Command
                 continue;
             }
 
-            $hash = $this->fs->hash($file);
+            $hash = sha1_file($file);
 
             if (isset($array[$hash])) {
                 $this->performDuplicateFile($file, $array[$hash], $hash);
@@ -79,21 +83,21 @@ class FindDuplicatesCommand extends Command
 
     private function ensureSource(?string $directoryPath)
     {
-        if (!$this->fs->exists($directoryPath)) {
+        if (!$this->filesystem->exists($directoryPath)) {
             throw new IOException("The source directory does not exist or is not accessible.");
         }
     }
 
     private function ensureDestination(?string $directoryPath)
     {
-        if (!$this->fs->exists($directoryPath)) {
+        if (!$this->filesystem->exists($directoryPath)) {
             throw new IOException("The destination directory does not exist or is not accessible.");
         }
     }
 
     private function ensureHashMaps($destinationPath, $output)
     {
-        if (!$this->fs->exists($destinationPath .  DIRECTORY_SEPARATOR . 'photosort_hash2path.json')) {
+        if (!$this->filesystem->exists($destinationPath .  DIRECTORY_SEPARATOR . 'photosort_hash2path.json')) {
             $hashMapCommand = $this->getApplication()->find('hash-map');
 
             $arguments = [
@@ -118,6 +122,6 @@ class FindDuplicatesCommand extends Command
 
     private function writeResultFile($sourceFilePath, $resultFile)
     {
-        $this->fs->dumpFile($sourceFilePath . DIRECTORY_SEPARATOR . $resultFile, json_encode($this->result, JSON_PRETTY_PRINT | JSON_NUMERIC_CHECK));
+        $this->filesystem->dumpFile($sourceFilePath . DIRECTORY_SEPARATOR . $resultFile, json_encode($this->result, JSON_PRETTY_PRINT | JSON_NUMERIC_CHECK));
     }
 }

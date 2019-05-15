@@ -14,11 +14,11 @@ class AnalyseDuplicatesCommand extends Command
 {
     protected static $defaultName = 'photosort:analyse-duplicates';
 
-    private $fs;
+    private $filesystem;
 
     public function __construct(string $name = null)
     {
-        $this->fs = new Filesystem();
+        $this->filesystem = new Filesystem();
 
         parent::__construct($name);
     }
@@ -42,43 +42,44 @@ class AnalyseDuplicatesCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $fs = new Filesystem();
+        try {
+            $source = $input->getArgument('source');
+            $onlyDuplicates = !!$input->getOption('only-duplicates');
+            $removeEmpty = !!$input->getOption('remove-empty');
+            $removePathToHash = !!$input->getOption('remove-path-to-hash');
 
-        $source = $input->getArgument('source');
-        $onlyDuplicates = !!$input->getOption('only-duplicates');
-        $removeEmpty = !!$input->getOption('remove-empty');
-        $removePathToHash = !!$input->getOption('remove-path-to-hash');
+            $this->ensureSourceExists($source);
 
-        $this->ensureSourceExists($source);
+            $data = json_decode(file_get_contents(realpath($source)), JSON_PRETTY_PRINT);
 
-        $data = json_decode(file_get_contents(realpath($source)), JSON_PRETTY_PRINT);
-
-        if ($removeEmpty) {
-            if (!is_null($data['empty_hash'])) {
-                if (isset($data['hashs'][$data['empty_hash']])) {
-                    unset($data['hashs'][$data['empty_hash']]);
+            if ($removeEmpty) {
+                if (!is_null($data['empty_hash'])) {
+                    if (isset($data['hashs'][$data['empty_hash']])) {
+                        unset($data['hashs'][$data['empty_hash']]);
+                    }
                 }
             }
-        }
 
-        if ($removePathToHash) {
-            $data['paths'] = [];
-        }
+            if ($removePathToHash) {
+                $data['paths'] = [];
+            }
 
-        if ($onlyDuplicates) {
-            foreach ($data['hashs'] as $hash => $files) {
-                if (count($files) < 2) {
-                    unset($data['hashs'][$hash]);
+            if ($onlyDuplicates) {
+                foreach ($data['hashs'] as $hash => $files) {
+                    if (count($files) < 2) {
+                        unset($data['hashs'][$hash]);
+                    }
                 }
             }
+            $this->filesystem->dumpFile(dirname($source) . DIRECTORY_SEPARATOR . '/photosort_hashmap_analysed.json', json_encode($data, JSON_PRETTY_PRINT));
+        } catch (\Exception $e) {
+            die ("Error: " . $e->getMessage());
         }
-
-        $fs->dumpFile(dirname($source) . DIRECTORY_SEPARATOR . '/photosort_hashmap_analysed.json', json_encode($data, JSON_PRETTY_PRINT));
     }
 
     private function ensureSourceExists(?string $source)
     {
-        if (!$this->fs->exists($source)) {
+        if (!$this->filesystem->exists($source)) {
             throw new IOException("Source hashmap file does not exists.");
         }
     }
