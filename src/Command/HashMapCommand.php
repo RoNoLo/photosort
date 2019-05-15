@@ -5,7 +5,6 @@ namespace App\Command;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -123,13 +122,13 @@ class HashMapCommand extends Command
 
         // Is it just a filename?
         if ($pathInfo['basename'] == $outputPath && $pathInfo['extension'] == 'json') {
-            return APP_PATH . DIRECTORY_SEPARATOR . $outputPath;
+            return '.' . DIRECTORY_SEPARATOR . $outputPath;
         }
 
         if (empty($pathInfo['filename']) && !empty($pathInfo['dirname']) && $pathInfo['dirname'] !== ".") {
             return $pathInfo['dirname'] . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
         }
 
-        return APP_PATH . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+        return '.' . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
     }
 }
