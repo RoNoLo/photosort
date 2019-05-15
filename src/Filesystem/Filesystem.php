@@ -2,6 +2,8 @@
 
 namespace RoNoLo\PhotoSort\Filesystem;
 
+use RoNoLo\PhotoSort\Iterator\ExtensionFilterIterator;
+use RoNoLo\PhotoSort\Iterator\ExtensionRecursiveFilterIterator;
 use Symfony\Component\Filesystem\Exception\IOException;
 
 class Filesystem extends \Symfony\Component\Filesystem\Filesystem
@@ -32,30 +34,28 @@ class Filesystem extends \Symfony\Component\Filesystem\Filesystem
 
         // not recursive
         if (!$recursive) {
+            $fsi = new \FilesystemIterator($targetDir, $flags);
             // No extension filtered
             if (!count($extensions)) {
-                return new \FilesystemIterator($targetDir, $flags);
+                return $fsi;
             }
 
-            return new \ExtensionFilterIterator(
-                new \FilesystemIterator($targetDir, $flags),
-                $extensions
-            );
+            return new ExtensionFilterIterator($fsi, $extensions);
         }
 
+        $rdi = new \RecursiveDirectoryIterator($targetDir, $flags);
         if (!count($extensions)) {
-            return new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($targetDir, $flags),
-                \RecursiveIteratorIterator::CHILD_FIRST
-            );
+            $rii = new \RecursiveIteratorIterator($rdi, \RecursiveIteratorIterator::CHILD_FIRST);
+
+            return $rii;
         }
 
-        return new \RecursiveIteratorIterator(
-            new \ExtensionRecursiveFilterIterator(
-                new \RecursiveDirectoryIterator($targetDir, $flags),
-                $extensions
-            ),
-            \RecursiveIteratorIterator::CHILD_FIRST
-        );
+        $erfi = new ExtensionRecursiveFilterIterator($rdi, $extensions);
+
+        $foo = iterator_to_array($erfi);
+
+        $rii = new \RecursiveIteratorIterator($erfi, \RecursiveIteratorIterator::CHILD_FIRST);
+
+        return $rii;
     }
 }

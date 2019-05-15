@@ -1,9 +1,11 @@
 <?php
 
-class ExtensionFilterIterator extends FilterIterator {
+namespace RoNoLo\PhotoSort\Iterator;
+
+class ExtensionFilterIterator extends \FilterIterator {
     private $extensions = [];
 
-    public function __construct(Iterator $iterator, $extensions = [])
+    public function __construct(\Iterator $iterator, $extensions = [])
     {
         $this->extensions = $extensions;
 

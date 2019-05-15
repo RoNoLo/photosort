@@ -9,8 +9,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Finder\Finder;
 
-class HashMapCommand extends Command
+class HashMapCommand extends ContainerAwareCommand
 {
     protected static $defaultName = 'hash-map';
 
@@ -31,7 +32,7 @@ class HashMapCommand extends Command
         $this->addArgument('source', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('output-path', InputArgument::OPTIONAL, 'Path to output file', null);
         $this->addOption('recursive', 'r', InputOption::VALUE_OPTIONAL, 'Recursive', true);
-        $this->addOption('file-extensions', 'e', InputOption::VALUE_OPTIONAL, 'List of extensions to process', 'jpg, jpeg');
+        // $this->addOption('file-extensions', 'e', InputOption::VALUE_OPTIONAL, 'List of extensions to process', '\.jpe?g');
     }
 
     /**
@@ -42,14 +43,19 @@ class HashMapCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->getC
 
         try {
             $source = $input->getArgument('source');
             $outputPath = $input->getArgument('output-path');
             $recursive = !!$input->getOption('recursive');
-            $fileExtensions = $input->getOption('file-extensions');
-            $fileExtensions = $this->ensureFileExtensions($fileExtensions);
-            $files = $this->fs->files($source, $recursive, $fileExtensions);
+//            $fileExtensions = $input->getOption('file-extensions');
+//            $fileExtensions = $this->ensureFileExtensions($fileExtensions);
+
+            $finder = new Finder();
+
+            $files = $finder->files()->name('/\.jpe?g/')->in($source);
+
             $hash2path = $path2hash = [];
             $emptyHash = null;
             $errors = [];
@@ -117,33 +123,33 @@ class HashMapCommand extends Command
         $pathInfo = pathinfo($outputPath);
 
         // Is it just a filename?
-        if ($pathInfo['filename'] == $outputPath && $pathInfo['extension'] == 'json') {
-            return __DIR__ . DIRECTORY_SEPARATOR . $outputPath;
+        if ($pathInfo['basename'] == $outputPath && $pathInfo['extension'] == 'json') {
+            return APP_PATH . DIRECTORY_SEPARATOR . $outputPath;
         }
 
-        if (empty($pathInfo['filename']) && !empty($pathInfo['dirname'])) {
+        if (empty($pathInfo['filename']) && !empty($pathInfo['dirname']) && $pathInfo['dirname'] !== ".") {
             return $pathInfo['dirname'] . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
         }
 
-        return __DIR__ . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+        return APP_PATH . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
     }
 
-    private function ensureFileExtensions(?string $fileExtensions)
-    {
-        if (is_null($fileExtensions)) {
-            throw new \InvalidArgumentException("No file extensions were given to process. Use `*` to include all file types.");
-        }
-
-        if (is_string($fileExtensions) && !empty($fileExtensions)) {
-            if ($fileExtensions === '*') {
-                return [];
-            }
-        }
-
-        $parts = explode(',', $fileExtensions);
-        $parts = array_map('trim', $parts);
-        $parts = array_filter($parts);
-
-        return $parts;
-    }
+//    private function ensureFileExtensions(?string $fileExtensions)
+//    {
+//        if (is_null($fileExtensions)) {
+//            throw new \InvalidArgumentException("No file extensions were given to process. Use `*` to include all file types.");
+//        }
+//
+//        if (is_string($fileExtensions) && !empty($fileExtensions)) {
+//            if ($fileExtensions === '*') {
+//                return [];
+//            }
+//        }
+//
+//        $parts = explode(',', $fileExtensions);
+//        $parts = array_map('trim', $parts);
+//        $parts = array_filter($parts);
+//
+//        return $parts;
+//    }
 }

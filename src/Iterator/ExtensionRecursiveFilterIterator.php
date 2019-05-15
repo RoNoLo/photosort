@@ -1,9 +1,12 @@
 <?php
 
-class ExtensionRecursiveFilterIterator extends RecursiveFilterIterator {
+namespace RoNoLo\PhotoSort\Iterator;
+
+class ExtensionRecursiveFilterIterator extends \RecursiveFilterIterator
+{
     private $extensions = [];
 
-    public function __construct(RecursiveIterator $iterator, $extensions = [])
+    public function __construct(\RecursiveIterator $iterator, $extensions = [])
     {
         $this->extensions = $extensions;
 
@@ -11,7 +14,10 @@ class ExtensionRecursiveFilterIterator extends RecursiveFilterIterator {
     }
 
     public function accept() {
-        return in_array($this->current()->getExtension(), $this->extensions, true);
-    }
+        if ($this->current()->isDir()) {
+            return false;
+        }
 
+        return in_array($this->current()->getExtension(), $this->extensions);
+    }
 }
