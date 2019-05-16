@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
 
 class PhotoSortCommand extends Command
 {
@@ -139,7 +140,7 @@ class PhotoSortCommand extends Command
             $this->filesystem->mkdir($imageDestinationPath);
         }
 
-        if ($this)
+        // if ($this)
     }
 
     private function checkForAlreadyExistingIdenticalFile(\SplFileInfo $file, string $imageDestinationFilePath)
