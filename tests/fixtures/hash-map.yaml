@@ -1,0 +1,35 @@
+fixtures:
+  image_001.jpg:
+    source/image_001.jpg: null
+  image_002.jpg:
+    source/image_002.jpg: null
+  image_003.jpg:
+    source/image_003.jpg: null
+  image_004.jpg:
+    source/peter/image_004.jpg: null
+    source/bernd/image_004.jpg: null
+    source/horst/image_004.jpg: null
+  image_005.jpg:
+    source/peter/image_005.jpg: null
+    source/bernd/image_005.jpg: null
+    source/horst/image_005.jpg: null
+  image_006.jpg:
+    source/peter/image_006.jpg: null
+    source/bernd/image_006.jpg: null
+    source/horst/image_006.jpg: null
+  image_007.jpg:
+    source/horst/tommy/image_007.jpg: null
+  image_008.jpg:
+    source/horst/tommy/image_008.jpg: null
+  image_010.jpg:
+    source/horst/tommy/image_010.jpg: null
+  image_011.jpg:
+    source/horst/tommy/image_011.jpg: null
+  image_013.jpg:
+    source/image_013.jpg: null
+  image_014.jpg:
+    source/image_014.jpg: null
+
+expected:
+  data:
+

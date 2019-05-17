@@ -28,10 +28,10 @@ class HashMapCommand extends Command
 
     protected function configure()
     {
-        $this->setDescription('Creates an hashmap on every file in a path');
-        $this->setHelp('Creates two hashmap files, which may help to find duplicate files quicker.');
+        $this->setDescription('Creates an hashmap on every file in a path.');
+        $this->setHelp('Creates a hashmap file, which may help to find duplicate files quicker.');
 
-        $this->addArgument('source', InputArgument::REQUIRED, 'Source directory');
+        $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addArgument('output-path', InputArgument::OPTIONAL, 'Path to output file', null);
     }
 
@@ -44,8 +44,11 @@ class HashMapCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         try {
-            $source = $input->getArgument('source');
+            $source = $input->getArgument('source-path');
             $outputPath = $input->getArgument('output-path');
+
+            $this->ensureSourcePath($source);
+            $this->ensureOutputPath($outputPath);
 
             $files = $this->finder->files()->name('/\.jpe?g/')->in($source);
 
@@ -130,5 +133,19 @@ class HashMapCommand extends Command
         }
 
         return '.' . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+    }
+
+    private function ensureSourcePath(?string $sourcePath)
+    {
+        if (!$this->filesystem->exists($sourcePath)) {
+            throw new IOException("The source directory does not exist or is not accessible.");
+        }
+    }
+
+    private function ensureOutputPath(?string $outputPath)
+    {
+        if (!$this->filesystem->exists($outputPath)) {
+            throw new IOException("The output directory does not exist or is not accessible.");
+        }
     }
 }

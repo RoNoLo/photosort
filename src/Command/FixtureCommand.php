@@ -15,7 +15,7 @@ use Symfony\Component\Yaml\Yaml;
 
 class FixtureCommand extends Command
 {
-    protected static $defaultName = 'photosort:fixture';
+    protected static $defaultName = 'tests:fixture';
 
     private $filesystem;
 
@@ -56,9 +56,9 @@ class FixtureCommand extends Command
         $this->ensureResourcePath($resourcesPath);
         $this->ensureDestinationPath($destinationPath);
 
-        $fixtures = Yaml::parseFile($sourceFile);
+        $data = Yaml::parseFile($sourceFile);
 
-        foreach ($fixtures as $sourceFile => $destinationFiles) {
+        foreach ($data['fixtures'] as $sourceFile => $destinationFiles) {
             foreach ($destinationFiles as $destinationFile => $datetime) {
                 $sourceFilePath = realpath($this->normalizePath($resourcesPath . DIRECTORY_SEPARATOR . $sourceFile));
 
