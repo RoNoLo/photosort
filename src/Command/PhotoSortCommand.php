@@ -212,6 +212,12 @@ class PhotoSortCommand extends Command
 
         $sourceFileHash = sha1_file($sourceFile);
 
+        // TODO:
+        $json = file_get_contents($dummyHashmapFile);
+        $hashmap = json_decode($json, JSON_PRETTY_PRINT);
+
+        unlink($dummyHashmapFile);
+
         if (isset($hashmap['hashs'][$sourceFileHash])) {
             $this->result[$this->currentFile->getPathname()] = 'identical to ' . implode(', ', $hashmap['hashs'][$sourceFileHash]);
 

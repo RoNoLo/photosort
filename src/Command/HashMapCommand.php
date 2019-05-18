@@ -96,17 +96,13 @@ class HashMapCommand extends Command
         $result['hashs'] = $hash2path;
         $result['paths'] = $path2hash;
 
-        if (!is_null($outputPath)) {
-            $outputFile = $this->ensureOutputFile($outputPath, $source);
+        $outputFile = $this->ensureOutputFile($outputPath, $source);
 
-            $this->filesystem->dumpFile($outputFile, json_encode($result, JSON_PRETTY_PRINT));
+        $this->filesystem->dumpFile($outputFile, json_encode($result, JSON_PRETTY_PRINT));
 
-            if ($output->isVerbose()) {
-                $output->writeln('Result: ' . $outputFile);
-            }
+        if ($output->isVerbose()) {
+            $output->writeln('Result: ' . $outputFile);
         }
-
-        return $result;
     }
 
     private function ensureOutputFile(?string $outputPath, $sourcePath)
@@ -128,7 +124,7 @@ class HashMapCommand extends Command
         $pathInfo = pathinfo($outputPath);
 
         // Is it just a filename?
-        if ($pathInfo['basename'] == $outputPath && $pathInfo['extension'] == 'json') {
+        if ($pathInfo['basename'] == basename($outputPath) && $pathInfo['dirname'] == "." && $pathInfo['extension'] == 'json') {
             return '.' . DIRECTORY_SEPARATOR . $outputPath;
         }
 
@@ -152,8 +148,14 @@ class HashMapCommand extends Command
             return;
         }
 
-        if (!$this->filesystem->exists($outputPath)) {
-            throw new IOException("The output directory does not exist or is not accessible.");
+        if ($this->filesystem->exists($outputPath) && is_dir($outputPath)) {
+            return;
         }
+
+        if (!$this->filesystem->exists($outputPath) && $this->filesystem->exists(dirname($outputPath)) && is_dir(dirname($outputPath))) {
+            return;
+        }
+
+        throw new IOException("The output directory does not exist or is not accessible.");
     }
 }
