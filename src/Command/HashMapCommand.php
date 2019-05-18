@@ -5,7 +5,9 @@ namespace App\Command;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\DependencyInjection\Tests\Compiler\OptionalParameter;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -32,7 +34,7 @@ class HashMapCommand extends Command
         $this->setHelp('Creates a hashmap file, which may help to find duplicate files quicker.');
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
-        $this->addArgument('output-path', InputArgument::OPTIONAL, 'Path to output file', null);
+        $this->addOption('output-path', null, InputOption::VALUE_OPTIONAL, 'Path to output JSON file (instead of command return)', null);
     }
 
     /**
@@ -43,56 +45,58 @@ class HashMapCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        try {
-            $source = $input->getArgument('source-path');
-            $outputPath = $input->getArgument('output-path');
+        $source = $input->getArgument('source-path');
+        $outputPath = $input->getOption('output-path');
 
-            $this->ensureSourcePath($source);
-            $this->ensureOutputPath($outputPath);
+        $this->ensureSourcePath($source);
+        $this->ensureOutputPath($outputPath);
 
-            $files = $this->finder->files()->name('/\.jpe?g/')->in($source);
+        $files = $this->finder->files()->name('/\.jpe?g/')->in($source);
 
-            $hash2path = $path2hash = [];
-            $emptyHash = null;
-            $errors = [];
-            /** @var \SplFileInfo $file */
-            foreach ($files as $file) {
-                if ($file->isDir()) {
-                    continue;
-                }
-
-                try {
-                    $path = $file->getRealPath();
-                    $hash = sha1_file($file);
-
-                    if ($file->getSize() === 0) {
-                        $emptyHash = $hash;
-                    }
-
-                    if ($output->isVerbose()) {
-                        $output->writeln('Hashed: ' . $hash . ': ' . $path);
-                    }
-
-                    $hash2path[$hash][] = $path;
-                    $path2hash[$path] = $hash;
-                } catch (IOException $e) {
-                    if ($output->isVeryVerbose()) {
-                        $output->writeln('IO Error: ' . $e->getMessage());
-                    }
-                    $errors[$path] = $e->getMessage();
-                } catch (\Exception $e) {
-                    if ($output->isVeryVerbose()) {
-                        $output->writeln('Error: ' . $e->getMessage());
-                    }
-                    $errors[$path] = $e->getMessage();
-                }
+        $hash2path = $path2hash = [];
+        $emptyHash = null;
+        $errors = [];
+        /** @var \SplFileInfo $file */
+        foreach ($files as $file) {
+            if ($file->isDir()) {
+                continue;
             }
-            $result['source'] = realpath($source);
-            $result['created'] = date('r');
-            $result['empty_hash'] = $emptyHash;
-            $result['errors'] = $errors;
-            $result['hashs'] = $hash2path;
-            $result['paths'] = $path2hash;
+
+            try {
+                $path = $file->getRealPath();
+                $hash = sha1_file($file);
+
+                if ($file->getSize() === 0) {
+                    $emptyHash = $hash;
+                }
+
+                if ($output->isVerbose()) {
+                    $output->writeln('Hashed: ' . $hash . ': ' . $path);
+                }
+
+                $hash2path[$hash][] = $path;
+                $path2hash[$path] = $hash;
+            } catch (IOException $e) {
+                if ($output->isVeryVerbose()) {
+                    $output->writeln('IO Error: ' . $e->getMessage());
+                }
+                $errors[$path] = $e->getMessage();
+            } catch (\Exception $e) {
+                if ($output->isVeryVerbose()) {
+                    $output->writeln('Error: ' . $e->getMessage());
+                }
+                $errors[$path] = $e->getMessage();
+            }
+        }
+
+        $result['source'] = realpath($source);
+        $result['created'] = date('r');
+        $result['empty_hash'] = $emptyHash;
+        $result['errors'] = $errors;
+        $result['hashs'] = $hash2path;
+        $result['paths'] = $path2hash;
+
+        if (!is_null($outputPath)) {
             $outputFile = $this->ensureOutputFile($outputPath, $source);
 
             $this->filesystem->dumpFile($outputFile, json_encode($result, JSON_PRETTY_PRINT));
@@ -100,9 +104,9 @@ class HashMapCommand extends Command
             if ($output->isVerbose()) {
                 $output->writeln('Result: ' . $outputFile);
             }
-        } catch (\Exception $e) {
-            die ("Error: " . $e->getMessage());
         }
+
+        return $result;
     }
 
     private function ensureOutputFile(?string $outputPath, $sourcePath)
@@ -142,8 +146,12 @@ class HashMapCommand extends Command
         }
     }
 
-    private function ensureOutputPath(?string $outputPath)
+    private function ensureOutputPath(?string $outputPath = null)
     {
+        if (is_null($outputPath)) {
+            return;
+        }
+
         if (!$this->filesystem->exists($outputPath)) {
             throw new IOException("The output directory does not exist or is not accessible.");
         }

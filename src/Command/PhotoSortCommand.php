@@ -3,10 +3,12 @@
 namespace App\Command;
 
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Filesystem\Exception\FileNotFoundException;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -22,6 +24,19 @@ class PhotoSortCommand extends Command
     /** @var OutputInterface */
     private $output;
 
+    /** @var \SplFileInfo */
+    private $currentFile;
+
+    private $result = [];
+
+    private $errors = 0;
+
+    private $identical = 0;
+
+    private $total = 0;
+
+    private $copied = 0;
+
     public function __construct(string $name = null)
     {
         $this->filesystem = new Filesystem();
@@ -32,13 +47,11 @@ class PhotoSortCommand extends Command
 
     protected function configure()
     {
-        $this->setDescription('Copies or moves images into a folder structure');
+        $this->setDescription('Copies images into a folder structure');
         $this->setHelp('This command allows you to create a user...');
 
-        $this->addArgument('source', InputArgument::REQUIRED, 'Source directory');
-        $this->addArgument('destination', InputArgument::REQUIRED, 'Destination directory root');
-        $this->addOption('copy', 'c', InputOption::VALUE_OPTIONAL, 'Copy files instead of moving', false);
-        $this->addOption('use-hashmap', 'h', InputOption::VALUE_OPTIONAL, 'Use hashmap file to find duplicates', false);
+        $this->addArgument('source-path', InputArgument::REQUIRED, 'Source directory');
+        $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
     }
 
     /**
@@ -51,42 +64,63 @@ class PhotoSortCommand extends Command
     {
         $this->output = $output;
 
-        try {
-            $source = $input->getArgument('source');
-            $destination = $input->getArgument('destination');
-            
-            $this->ensurePathExists($source);
-            $this->ensurePathExists($destination);
+        $sourcePath = $input->getArgument('source-path');
+        $destinationPath = $input->getArgument('destination-path');
 
-            $source = realpath($source);
-            $destination = realpath($destination);
-            
-            $copy = !!$input->getOption('copy');
-            $useHashMap = !!$input->getOption('use-hashmap');
-            
-            $files = $this->finder->files()->name('/\.jpe?g/')->in($source);
-            
-            /** @var \SplFileInfo $file */
-            foreach ($files as $file) {
-                if ($file->isDir()) {
-                    continue;
-                }
+        $this->ensurePathExists($sourcePath);
+        $this->ensurePathExists($destinationPath);
 
-                if ($output->isVerbose()) {
-                    $output->writeln("Image: " . $file->getBasename());
-                }
+        $sourcePath = realpath($sourcePath);
+        $destinationPath = realpath($destinationPath);
 
-                $imageDestinationPath = $this->buildDestinationPath($destination, $file);
+        $files = $this->finder->files()->name('/\.jpe?g/')->in($sourcePath);
 
-                if ($output->isVeryVerbose()) {
-                    $output->writeln("Destination Path: " . $imageDestinationPath);
-                }
-
-                $this->moveFile($file, $imageDestinationPath, $copy);
+        /** @var \SplFileInfo $file */
+        foreach ($files as $file) {
+            if ($file->isDir()) {
+                continue;
             }
-        } catch (\Exception $e) {
-            die("Error: " . $e->getMessage());
+
+            $this->currentFile = $file;
+
+            if ($output->isVerbose()) {
+                $output->writeln("Image: " . $file->getBasename());
+            }
+
+            $imageDestinationFilePath = $this->buildDestinationPath($destinationPath, $file);
+
+            if ($output->isVeryVerbose()) {
+                $output->writeln("Destination Path: " . $imageDestinationFilePath);
+            }
+
+            $imageSourceFilePath = $file->getRealPath();
+
+            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath);
+
+            $this->total++;
         }
+
+        $result['source'] = $sourcePath;
+        $result['destination'] = $destinationPath;
+        $result['created'] = date('r');
+        $result['stats'] = [
+            'totals' => $this->total,
+            'copied' => $this->copied,
+            'identical' => $this->identical,
+            'errors' => $this->errors,
+        ];
+        $result['log'] = $this->result;
+        $result['log'] = $this->result;
+
+        $logFile = $sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json';
+
+        $this->filesystem->dumpFile($logFile, json_encode($result, JSON_PRETTY_PRINT));
+
+        if ($output->isVerbose()) {
+            $output->writeln('Result: ' . $logFile);
+        }
+
+        return $result;
     }
 
     private function buildDestinationPath(string $destination, \SplFileInfo $file)
@@ -118,40 +152,68 @@ class PhotoSortCommand extends Command
         }
     }
 
-    private function moveFile(\SplFileInfo $file, string $imageDestinationFilePath, $copyOnly = false)
+    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath)
     {
-        if ($this->checkForAlreadyExistingIdenticalFile($file, $imageDestinationFilePath)) {
-            if ($this->output->isVerbose()) {
-                $this->output->writeln("Note: Image: `{$file->getBasename()}` already at destination found.");
+        // Check if a file with the same name already exists at destination
+        if ($this->filesystem->exists($imageDestinationFilePath)) {
+            // When identical we abort the copy.
+            if ($this->checkIdentical($imageSourceFilePath, $imageDestinationFilePath)) {
+                $this->identical++;
+                return;
             }
 
-            if (!$copyOnly) {
-                $this->filesystem->remove($file->getRealPath());
-                if ($this->output->isVerbose()) {
-                    $this->output->writeln("Note: Image: `{$file->getBasename()}` removed.");
-                }
+            // When different file with same name, we check if other files in the same path may be identical by hash
+            if ($this->checkIdenticalInPath($imageSourceFilePath, dirname($imageDestinationFilePath))) {
+                $this->identical++;
+                return;
             }
         }
-        
 
-        $imageDestinationPath = dirname($imageDestinationFilePath);
+        // Copy the file
+        try {
+            $this->filesystem->copy($imageSourceFilePath, $imageDestinationFilePath);
 
-        if (!$this->filesystem->exists($imageDestinationPath)) {
-            $this->filesystem->mkdir($imageDestinationPath);
+            $this->result[$this->currentFile->getPathname()] = 'copied to ' . $imageDestinationFilePath;
+            $this->copied++;
+        } catch (IOException $e) {
+            $this->errors++;
+            $this->result[$this->currentFile->getPathname()] = 'error on copy ' . $e->getMessage();
         }
-
-        // if ($this)
     }
 
-    private function checkForAlreadyExistingIdenticalFile(\SplFileInfo $file, string $imageDestinationFilePath)
+    private function checkIdentical($sourceFile, $destinationFile)
     {
-        if (!$this->filesystem->exists($imageDestinationFilePath)) {
-            return false;
+        $sourceFileHash = sha1_file($sourceFile);
+        $destinationFileHash = sha1_file($destinationFile);
+
+        if ($sourceFileHash === $destinationFileHash) {
+            $this->result[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
+
+            return true;
         }
 
-        $destinationFileHash = sha1_file($imageDestinationFilePath);
-        $sourceFileHash = sha1_file($file->getRealPath());
+        return false;
+    }
 
-        return $sourceFileHash === $destinationFileHash;
+    private function checkIdenticalInPath(string $sourceFile, string $destinationPath)
+    {
+        $hashMapCommand = $this->getApplication()->find('photosort:hash-map');
+
+        $arguments = [
+            'source' => $destinationPath,
+        ];
+
+        $input = new ArrayInput($arguments);
+        $hashmap = $hashMapCommand->run($input, $this->output);
+
+        $sourceFileHash = sha1_file($sourceFile);
+
+        if (isset($hashmap['hashs'][$sourceFileHash])) {
+            $this->result[$this->currentFile->getPathname()] = 'identical to ' . implode(', ', $hashmap['hashs'][$sourceFileHash]);
+
+            return true;
+        }
+
+        return false;
     }
 }

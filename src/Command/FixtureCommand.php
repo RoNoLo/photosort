@@ -31,7 +31,7 @@ class FixtureCommand extends Command
         $this->setDescription('Creates Fixtures');
         $this->setHelp('This command allows you to create a user...');
 
-        $this->addArgument('source-file', InputArgument::REQUIRED, 'Source YAML file');
+        $this->addArgument('fixture-file', InputArgument::REQUIRED, 'Fixtures YAML file');
         $this->addArgument('resource-path', InputArgument::REQUIRED, 'Directory with the resources');
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
     }
@@ -44,23 +44,23 @@ class FixtureCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $sourceFile = $input->getArgument('source-file');
+        $fixtureFile = $input->getArgument('fixture-file');
         $resourcesPath = $input->getArgument('resource-path');
         $destinationPath = $input->getArgument('destination-path');
 
-        $sourceFile = realpath($sourceFile);
+        $fixtureFile = realpath($fixtureFile);
         $resourcesPath = realpath($resourcesPath);
         $destinationPath = realpath($destinationPath);
 
-        $this->ensureSourceFile($sourceFile);
+        $this->ensureSourceFile($fixtureFile);
         $this->ensureResourcePath($resourcesPath);
         $this->ensureDestinationPath($destinationPath);
 
-        $data = Yaml::parseFile($sourceFile);
+        $data = Yaml::parseFile($fixtureFile);
 
-        foreach ($data['fixtures'] as $sourceFile => $destinationFiles) {
+        foreach ($data['fixtures'] as $fixtureFile => $destinationFiles) {
             foreach ($destinationFiles as $destinationFile => $datetime) {
-                $sourceFilePath = realpath($this->normalizePath($resourcesPath . DIRECTORY_SEPARATOR . $sourceFile));
+                $sourceFilePath = realpath($this->normalizePath($resourcesPath . DIRECTORY_SEPARATOR . $fixtureFile));
 
                 if (!$this->filesystem->exists($sourceFilePath)) {
                     throw new IOException("The source file `{$sourceFilePath} does not exists.");
@@ -71,7 +71,7 @@ class FixtureCommand extends Command
                 $this->filesystem->copy($sourceFilePath, $destinationFilePath);
 
                 if (!is_null($datetime)) {
-                    $this->filesystem->touch($destinationFilePath, strtotime($datetime));
+                    $this->filesystem->touch($destinationFilePath, $datetime);
                 }
             }
         }
