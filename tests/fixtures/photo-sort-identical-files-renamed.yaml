@@ -1,0 +1,57 @@
+fixtures:
+  image_001.jpg:
+    source/image_001.jpg: 2019-01-01
+    destination/2019/1901/190101/image_001a.jpg: 2019-01-01
+  image_002.jpg:
+    source/image_002.jpg: 2019-01-01
+  image_003.jpg:
+    source/image_003.jpg: 2019-03-01
+  image_004.jpg:
+    source/peter/image_004.jpg: 2019-03-01
+    source/bernd/image_004.jpg: 2019-03-01
+    source/horst/image_004.jpg: 2019-03-01
+  image_005.jpg:
+    destination/2019/1901/190101/image_001.jpg: 2019-01-01
+    source/peter/image_005.jpg: 2019-03-02
+    source/bernd/image_005.jpg: 2019-03-03
+    source/horst/image_005.jpg: 2019-03-04
+  image_006.jpg:
+    source/peter/image_006.jpg: 2019-06-01
+    source/bernd/image_006.jpg: 2019-06-12
+    source/horst/image_006a.jpg: 2019-06-12
+  image_007.jpg:
+    source/horst/tommy/image_007.jpg: 2018-03-01
+    destination/2018/1803/180301/horst.jpg: 2018-03-01
+  image_008.jpg:
+    source/horst/tommy/image_008.jpg: 2018-03-01
+    destination/2018/1803/180301/image_007.jpg: 2018-03-01
+  image_010.jpg:
+    source/horst/tommy/image_010.jpg: 2018-03-01
+  image_011.jpg:
+    source/horst/tommy/image_011.jpg: 2018-03-01
+  image_013.jpg:
+    source/image_013.jpg: 2019-11-01
+  image_014.jpg:
+    source/image_014s.jpg: 2019-11-01
+
+expected:
+  structure:
+    - 2019/1901/190101/image_001a.jpg
+    - 2019/1901/190101/image_002.jpg
+    - 2019/1903/190301/image_003.jpg
+    - 2019/1903/190301/image_004.jpg
+    - 2019/1903/190302/image_005.jpg
+    - 2019/1903/190303/image_005.jpg
+    - 2019/1903/190304/image_005.jpg
+    - 2019/1906/190601/image_006.jpg
+    - 2019/1906/190612/image_006.jpg
+    - 2019/1906/190612/image_006a.jpg
+    - 2018/1803/180301/horst.jpg
+    - 2018/1803/180301/image_008.jpg
+    - 2018/1803/180301/image_010.jpg
+    - 2018/1803/180301/image_011.jpg
+    - 2019/1911/191101/image_013.jpg
+    - 2019/1911/191101/image_014s.jpg
+
+  exceptions: null
+

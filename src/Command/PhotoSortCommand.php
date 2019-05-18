@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\FileNotFoundException;
 use Symfony\Component\Filesystem\Exception\IOException;
@@ -199,12 +200,15 @@ class PhotoSortCommand extends Command
     {
         $hashMapCommand = $this->getApplication()->find('photosort:hash-map');
 
+        $dummyHashmapFile = sha1(uniqid(microtime())) . '.json';
+
         $arguments = [
-            'source' => $destinationPath,
+            'source-path' => $destinationPath,
+            '--output-path' => '.' . DIRECTORY_SEPARATOR . $dummyHashmapFile,
         ];
 
         $input = new ArrayInput($arguments);
-        $hashmap = $hashMapCommand->run($input, $this->output);
+        $hashMapCommand->run($input, new NullOutput());
 
         $sourceFileHash = sha1_file($sourceFile);
 

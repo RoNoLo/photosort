@@ -2,11 +2,12 @@
 
 namespace RoNoLo\PhotoSort\Command;
 
+use App\Command\HashMapCommand;
 use App\Command\PhotoSortCommand;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class PhotoSortCommandTest extends BaseTestCase
+class PhotoSortCommandIdenticalsRenamedTest extends BaseTestCase
 {
     var $sourcePath;
 
@@ -14,7 +15,7 @@ class PhotoSortCommandTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = __DIR__ . '/../../fixtures/photo-sort-001.yaml';
+        $this->fixtureFile = __DIR__ . '/../../fixtures/photo-sort-identical-files-renamed.yaml';
 
         parent::setUp();
 
@@ -25,9 +26,10 @@ class PhotoSortCommandTest extends BaseTestCase
         $this->destinationPath = realpath($tmpPath . DIRECTORY_SEPARATOR . 'destination');
     }
 
-    public function testOptionsAreDefault()
+    public function testOptionsAreDefaultAndNoExistingStructure()
     {
         $this->app->add(new PhotoSortCommand());
+        $this->app->add(new HashMapCommand());
 
         $command = $this->app->find('photosort:photo-sort');
         $commandTester = new CommandTester($command);
