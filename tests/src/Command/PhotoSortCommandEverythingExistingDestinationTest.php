@@ -7,7 +7,7 @@ use App\Command\PhotoSortCommand;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class PhotoSortCommandIdenticalsRenamedTest extends BaseTestCase
+class PhotoSortCommandEverythingExistingDestinationTest extends BaseTestCase
 {
     var $sourcePath;
 
@@ -15,7 +15,7 @@ class PhotoSortCommandIdenticalsRenamedTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = __DIR__ . '/../../fixtures/photo-sort-identical-files-renamed.yaml';
+        $this->fixtureFile = __DIR__ . '/../../fixtures/photo-sort-everything-existing.yaml';
 
         parent::setUp();
 
@@ -61,8 +61,8 @@ class PhotoSortCommandIdenticalsRenamedTest extends BaseTestCase
 
         $this->assertEquals(18, count($log['log']));
         $this->assertEquals(18, $log['stats']['totals']);
-        $this->assertEquals(14, $log['stats']['copied']);
-        $this->assertEquals(4, $log['stats']['identical']);
+        $this->assertEquals(0, $log['stats']['copied']);
+        $this->assertEquals(18, $log['stats']['identical']);
         $this->assertEquals(0, $log['stats']['errors']);
     }
 

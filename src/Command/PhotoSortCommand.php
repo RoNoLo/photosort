@@ -3,10 +3,8 @@
 namespace App\Command;
 
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -17,8 +15,6 @@ class PhotoSortCommand extends Command
     protected static $defaultName = 'photosort:photo-sort';
 
     private $filesystem;
-
-    private $finder;
 
     /** @var OutputInterface */
     private $output;
@@ -39,7 +35,6 @@ class PhotoSortCommand extends Command
     public function __construct(string $name = null)
     {
         $this->filesystem = new Filesystem();
-        $this->finder = new Finder();
 
         parent::__construct($name);
     }
@@ -72,10 +67,20 @@ class PhotoSortCommand extends Command
         $sourcePath = realpath($sourcePath);
         $destinationPath = realpath($destinationPath);
 
-        $files = $this->finder->files()->name('/\.jpe?g/')->in($sourcePath);
+        $finder = new Finder();
+
+        $finder->files()->name('/\.jpe?g/')->in($sourcePath);
+
+        if (!$finder->hasResults()) {
+            if ($output->isVerbose()) {
+                $output->writeln("Source directory had no image files to process.");
+            }
+
+            return 0;
+        }
 
         /** @var \SplFileInfo $file */
-        foreach ($files as $file) {
+        foreach ($finder as $file) {
             if ($file->isDir()) {
                 continue;
             }
@@ -196,28 +201,31 @@ class PhotoSortCommand extends Command
 
     private function checkIdenticalInPath(string $sourceFile, string $destinationPath)
     {
-        $hashMapCommand = $this->getApplication()->find('photosort:hash-map');
+        $finder = new Finder();
 
-        $dummyHashmapFile = sha1(uniqid(microtime())) . '.json';
+        $finder->files()->name('/\.jpe?g/')->in($destinationPath);
 
-        $arguments = [
-            'source-path' => $destinationPath,
-            '--output-path' => '.' . DIRECTORY_SEPARATOR . $dummyHashmapFile,
-        ];
+        $hashs = [];
+        /** @var \SplFileInfo $file */
+        foreach ($finder as $file) {
+            if ($file->isDir()) {
+                continue;
+            }
 
-        $input = new ArrayInput($arguments);
-        $hashMapCommand->run($input, new NullOutput());
+            $path = $file->getRealPath();
+            $hash = sha1_file($file);
+
+            if ($file->getSize() === 0) {
+                continue;
+            }
+
+            $hashs[$hash][] = $path;
+        }
 
         $sourceFileHash = sha1_file($sourceFile);
 
-        // TODO:
-        $json = file_get_contents($dummyHashmapFile);
-        $hashmap = json_decode($json, JSON_PRETTY_PRINT);
-
-        unlink($dummyHashmapFile);
-
-        if (isset($hashmap['hashs'][$sourceFileHash])) {
-            $this->result[$this->currentFile->getPathname()] = 'identical to ' . implode(', ', $hashmap['hashs'][$sourceFileHash]);
+        if (isset($hashs[$sourceFileHash])) {
+            $this->result[$this->currentFile->getPathname()] = 'identical to ' . implode(', ', $hashs[$sourceFileHash]);
 
             return true;
         }

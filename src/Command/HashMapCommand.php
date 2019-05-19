@@ -7,7 +7,6 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\DependencyInjection\Tests\Compiler\OptionalParameter;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -16,13 +15,10 @@ class HashMapCommand extends Command
 {
     protected static $defaultName = 'photosort:hash-map';
 
-    private $finder;
-
     private $filesystem;
 
     public function __construct(string $name = null)
     {
-        $this->finder = new Finder();
         $this->filesystem = new Filesystem();
 
         parent::__construct($name);
@@ -51,13 +47,15 @@ class HashMapCommand extends Command
         $this->ensureSourcePath($source);
         $this->ensureOutputPath($outputPath);
 
-        $files = $this->finder->files()->name('/\.jpe?g/')->in($source);
+        $finder = new Finder();
+
+        $finder->files()->name('/\.jpe?g/')->in($source);
 
         $hash2path = $path2hash = [];
         $emptyHash = null;
         $errors = [];
         /** @var \SplFileInfo $file */
-        foreach ($files as $file) {
+        foreach ($finder as $file) {
             if ($file->isDir()) {
                 continue;
             }

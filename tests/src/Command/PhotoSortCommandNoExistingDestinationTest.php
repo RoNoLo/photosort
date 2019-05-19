@@ -29,7 +29,6 @@ class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
     public function testOptionsAreDefaultAndNoExistingStructure()
     {
         $this->app->add(new PhotoSortCommand());
-        $this->app->add(new HashMapCommand());
 
         $command = $this->app->find('photosort:photo-sort');
         $commandTester = new CommandTester($command);
@@ -48,6 +47,23 @@ class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
         ]);
 
         $this->assertEquals(0, $result);
+
+        $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json');
+
+        $json = file_get_contents($this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json');
+        $log = json_decode($json, JSON_OBJECT_AS_ARRAY);
+
+        $this->assertArrayHasKey('source', $log);
+        $this->assertArrayHasKey('destination', $log);
+        $this->assertArrayHasKey('stats', $log);
+        $this->assertArrayHasKey('created', $log);
+        $this->assertArrayHasKey('log', $log);
+
+        $this->assertEquals(18, count($log['log']));
+        $this->assertEquals(18, $log['stats']['totals']);
+        $this->assertEquals(16, $log['stats']['copied']);
+        $this->assertEquals(2, $log['stats']['identical']);
+        $this->assertEquals(0, $log['stats']['errors']);
     }
 
     protected function tearDown()

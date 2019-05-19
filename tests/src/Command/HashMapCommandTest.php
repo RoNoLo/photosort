@@ -31,7 +31,7 @@ class HashMapCommandTest extends BaseTestCase
         $commandTester->execute([
             'command' => $command->getName(),
             'source-path' => $this->sourcePath,
-            'output-path' => $this->outputPath,
+            '--output-path' => $this->outputPath,
         ]);
 
         $this->assertFileExists($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
