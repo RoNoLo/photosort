@@ -15,6 +15,8 @@ class PhotoSortCommand extends Command
 {
     protected static $defaultName = 'photosort:photo-sort';
 
+    const IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
+
     private $filesystem;
 
     /** @var OutputInterface */
@@ -44,13 +46,14 @@ class PhotoSortCommand extends Command
 
     protected function configure()
     {
-        $this->setDescription('Copies images into a folder structure');
-        $this->setHelp('This command allows you to create a user...');
+        $this->setDescription('Copies images into a folder structure YY/YYMM/YYMMDD/files');
+        $this->setHelp("This command will copy images into a folder structure based on the file date of the image.\nA log file (photosort_log.json) will be created in the source directory to see if everything went well.");
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
         $this->addOption('not-rename-and-copy-duplicates', null, InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', false);
-        $this->addOption('monthly', null, InputOption::VALUE_OPTIONAL, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images.', false);
+        $this->addOption('monthly', null, InputOption::VALUE_OPTIONAL, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images', false);
+        $this->addOption('dry-run', null, InputOption::VALUE_OPTIONAL, 'No copy, just the log what would be done', false);
     }
 
     /**
@@ -67,6 +70,7 @@ class PhotoSortCommand extends Command
         $destinationPath = $input->getArgument('destination-path');
         $notRenameDuplicates = !!$input->getOption('not-rename-and-copy-duplicates');
         $monthly = !!$input->getOption('monthly');
+        $dryRun = !!$input->getOption('dry-run');
 
         $this->ensurePathExists($sourcePath);
         $this->ensurePathExists($destinationPath);
@@ -76,7 +80,7 @@ class PhotoSortCommand extends Command
 
         $finder = new Finder();
 
-        $finder->files()->name('/\.jpe?g/')->in($sourcePath);
+        $finder->files()->name(self::IMAGES)->in($sourcePath);
 
         if (!$finder->hasResults()) {
             if ($output->isVerbose()) {
@@ -90,6 +94,11 @@ class PhotoSortCommand extends Command
         foreach ($finder as $file) {
             if ($file->isDir()) {
                 continue;
+            }
+
+            if ($file->getSize() === 0) {
+                $this->result[$this->currentFile->getPathname()] = 'skipped because the filesize was 0 bytes';
+                $this->skipped++;
             }
 
             $this->currentFile = $file;
@@ -106,7 +115,7 @@ class PhotoSortCommand extends Command
 
             $imageSourceFilePath = $file->getRealPath();
 
-            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath, $notRenameDuplicates);
+            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath, $notRenameDuplicates, $dryRun);
 
             $this->total++;
         }
@@ -172,8 +181,12 @@ class PhotoSortCommand extends Command
         }
     }
 
-    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath, $notRenameDuplicates = false)
+    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath, $notRenameDuplicates = false, $dryRun = false)
     {
+        if ($this->output->isVeryVerbose()) {
+            $this->output->writeln("Try to copy from: " . $imageSourceFilePath . " to: ". $imageDestinationFilePath);
+        }
+
         // Check if a file with the same name already exists at destination
         if ($this->filesystem->exists($imageDestinationFilePath)) {
             // When identical we abort the copy.
@@ -192,18 +205,35 @@ class PhotoSortCommand extends Command
             if ($notRenameDuplicates) {
                 $this->result[$this->currentFile->getPathname()] = 'skipped because a file with identical name, but different content, was already at destination ' . $imageDestinationFilePath;
                 $this->skipped++;
+
+                if ($this->output->isDebug()) {
+                    $this->output->writeln($this->currentFile->getPathname() . " has the same name as " . $imageDestinationFilePath . " but is not identical");
+                    $this->output->writeln($this->currentFile->getPathname() . " was not copied");
+                }
+
                 return;
             }
 
             $imageDestinationFilePath = $this->renameDestinationFile($imageDestinationFilePath);
+
+            if ($this->output->isDebug()) {
+                $this->output->writeln($this->currentFile->getPathname() . " renamed to " . $imageDestinationFilePath);
+            }
+
         }
 
         // Copy the file
         try {
-            $this->filesystem->copy($imageSourceFilePath, $imageDestinationFilePath);
+            if (!$dryRun) {
+                $this->filesystem->copy($imageSourceFilePath, $imageDestinationFilePath);
+            }
 
             $this->result[$this->currentFile->getPathname()] = 'copied to ' . $imageDestinationFilePath;
             $this->copied++;
+
+            if ($this->output->isVerbose()) {
+                $this->output->writeln("copied from: " . $this->currentFile->getPathname() . " to: ". $imageDestinationFilePath);
+            }
         } catch (IOException $e) {
             $this->errors++;
             $this->result[$this->currentFile->getPathname()] = 'error on copy ' . $e->getMessage();
@@ -218,6 +248,10 @@ class PhotoSortCommand extends Command
         if ($sourceFileHash === $destinationFileHash) {
             $this->result[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
 
+            if ($this->output->isDebug()) {
+                $this->output->writeln($this->currentFile->getPathname() . " is identical to " . $destinationFile);
+            }
+
             return true;
         }
 
@@ -228,7 +262,7 @@ class PhotoSortCommand extends Command
     {
         $finder = new Finder();
 
-        $finder->files()->name('/\.jpe?g/')->in($destinationPath);
+        $finder->files()->name(self::IMAGES)->in($destinationPath);
 
         $hashs = [];
         /** @var \SplFileInfo $file */
@@ -251,6 +285,10 @@ class PhotoSortCommand extends Command
 
         if (isset($hashs[$sourceFileHash])) {
             $this->result[$this->currentFile->getPathname()] = 'identical to ' . implode(', ', $hashs[$sourceFileHash]);
+
+            if ($this->output->isDebug()) {
+                $this->output->writeln($this->currentFile->getPathname() . " is identical to " . $hashs[$sourceFileHash][0]);
+            }
 
             return true;
         }
