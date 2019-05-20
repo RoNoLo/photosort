@@ -1,0 +1,19 @@
+fixtures:
+  image_001.jpg:
+    source/image_001.jpg: 2019-01-01
+    destination/2019/1903/190301/image_003.jpg: 2019-03-01
+  image_002.jpg:
+    source/image_002.jpg: 2019-01-01
+    destination/2019/1901/190101/image_001.jpg: 2019-01-01
+  image_003.jpg:
+    source/image_003.jpg: 2019-03-01
+    destination/2019/1901/190101/image_002.jpg: 2019-01-01
+
+expected:
+  structure:
+    - 2019/1901/190101/image_001.jpg
+    - 2019/1901/190101/image_002.jpg
+    - 2019/1903/190301/image_003.jpg
+
+  exceptions: null
+
