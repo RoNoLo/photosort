@@ -20,7 +20,10 @@ class PhotoSortCommandEverythingExistingDestinationTest extends BaseTestCase
         parent::setUp();
 
         $tmpPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp';
-        $this->filesystem->mkdir($tmpPath . DIRECTORY_SEPARATOR . 'destination');
+        $destinationPath = $tmpPath . DIRECTORY_SEPARATOR . 'destination';
+        if (!$this->filesystem->exists($destinationPath)) {
+            $this->filesystem->mkdir($destinationPath);
+        }
 
         $this->sourcePath = realpath($tmpPath . DIRECTORY_SEPARATOR . 'source');
         $this->destinationPath = realpath($tmpPath . DIRECTORY_SEPARATOR . 'destination');
@@ -64,6 +67,7 @@ class PhotoSortCommandEverythingExistingDestinationTest extends BaseTestCase
         $this->assertEquals(0, $log['stats']['copied']);
         $this->assertEquals(18, $log['stats']['identical']);
         $this->assertEquals(0, $log['stats']['errors']);
+        $this->assertEquals(0, $log['stats']['skipped']);
     }
 
     protected function tearDown()

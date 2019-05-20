@@ -49,7 +49,7 @@ class PhotoSortCommand extends Command
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
-        $this->addOption('not-rename-and-copy-duplicates', null, InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', true);
+        $this->addOption('not-rename-and-copy-duplicates', null, InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', false);
         $this->addOption('monthly', null, InputOption::VALUE_OPTIONAL, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images.', false);
     }
 
@@ -190,6 +190,7 @@ class PhotoSortCommand extends Command
 
             // So there is a identical named file and no other file in the destination path is identical
             if ($notRenameDuplicates) {
+                $this->result[$this->currentFile->getPathname()] = 'skipped because a file with identical name, but different content, was already at destination ' . $imageDestinationFilePath;
                 $this->skipped++;
                 return;
             }

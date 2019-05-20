@@ -20,7 +20,11 @@ class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
         parent::setUp();
 
         $tmpPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp';
-        $this->filesystem->mkdir($tmpPath . DIRECTORY_SEPARATOR . 'destination');
+        $destinationPath = $tmpPath . DIRECTORY_SEPARATOR . 'destination';
+        if (!$this->filesystem->exists($destinationPath)) {
+            $this->filesystem->mkdir($destinationPath);
+        }
+
 
         $this->sourcePath = realpath($tmpPath . DIRECTORY_SEPARATOR . 'source');
         $this->destinationPath = realpath($tmpPath . DIRECTORY_SEPARATOR . 'destination');
@@ -59,11 +63,12 @@ class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
         $this->assertArrayHasKey('created', $log);
         $this->assertArrayHasKey('log', $log);
 
-        $this->assertEquals(18, count($log['log']));
-        $this->assertEquals(18, $log['stats']['totals']);
-        $this->assertEquals(16, $log['stats']['copied']);
-        $this->assertEquals(2, $log['stats']['identical']);
+        $this->assertEquals(3, count($log['log']));
+        $this->assertEquals(3, $log['stats']['totals']);
+        $this->assertEquals(2, $log['stats']['copied']);
+        $this->assertEquals(1, $log['stats']['identical']);
         $this->assertEquals(0, $log['stats']['errors']);
+        $this->assertEquals(0, $log['stats']['skipped']);
     }
 
     protected function tearDown()
