@@ -50,6 +50,7 @@ class PhotoSortCommand extends Command
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
         $this->addOption('not-rename-and-copy-duplicates', null, InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', true);
+        $this->addOption('monthly', null, InputOption::VALUE_OPTIONAL, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images.', false);
     }
 
     /**
@@ -65,6 +66,7 @@ class PhotoSortCommand extends Command
         $sourcePath = $input->getArgument('source-path');
         $destinationPath = $input->getArgument('destination-path');
         $notRenameDuplicates = !!$input->getOption('not-rename-and-copy-duplicates');
+        $monthly = !!$input->getOption('monthly');
 
         $this->ensurePathExists($sourcePath);
         $this->ensurePathExists($destinationPath);
@@ -96,7 +98,7 @@ class PhotoSortCommand extends Command
                 $output->writeln("Image: " . $file->getBasename());
             }
 
-            $imageDestinationFilePath = $this->buildDestinationPath($destinationPath, $file);
+            $imageDestinationFilePath = $this->buildDestinationPath($destinationPath, $file, $monthly);
 
             if ($output->isVeryVerbose()) {
                 $output->writeln("Destination Path: " . $imageDestinationFilePath);
@@ -133,7 +135,7 @@ class PhotoSortCommand extends Command
         return $result;
     }
 
-    private function buildDestinationPath(string $destination, \SplFileInfo $file)
+    private function buildDestinationPath(string $destination, \SplFileInfo $file, $monthly = false)
     {
         $photoDate = $file->getMTime();
 
@@ -141,12 +143,20 @@ class PhotoSortCommand extends Command
         $yearMonth = date("ym", $photoDate);
         $yearMonthDay = date("ymd", $photoDate);
 
-        $destinationPath = $destination . DIRECTORY_SEPARATOR .
-            $year . DIRECTORY_SEPARATOR .
-            $yearMonth . DIRECTORY_SEPARATOR .
-            $yearMonthDay . DIRECTORY_SEPARATOR .
-            $file->getBasename()
-        ;
+        if ($monthly) {
+            $destinationPath = $destination . DIRECTORY_SEPARATOR .
+              $year . DIRECTORY_SEPARATOR .
+              $yearMonth . DIRECTORY_SEPARATOR .
+              $file->getBasename()
+            ;
+        } else {
+            $destinationPath = $destination . DIRECTORY_SEPARATOR .
+                $year . DIRECTORY_SEPARATOR .
+                $yearMonth . DIRECTORY_SEPARATOR .
+                $yearMonthDay . DIRECTORY_SEPARATOR .
+                $file->getBasename()
+            ;
+        }
 
         return $destinationPath;
     }
@@ -249,13 +259,13 @@ class PhotoSortCommand extends Command
 
     private function renameDestinationFile(string $imageDestinationFilePath)
     {
-        $breaker = 100;
+        $breaker = 10000;
 
         $destinationFilePath = null;
         do {
             $pathinfo = pathinfo($imageDestinationFilePath);
 
-            $filename = $pathinfo['filename'] . '_' . (100 - $breaker + 1);
+            $filename = $pathinfo['filename'] . '_' . (10000 - $breaker + 1);
 
             $destinationFilePath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $filename . '.' . $pathinfo['extension'];
 
