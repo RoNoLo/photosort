@@ -5,6 +5,7 @@ namespace App\Command;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -32,6 +33,8 @@ class PhotoSortCommand extends Command
 
     private $copied = 0;
 
+    private $skipped = 0;
+
     public function __construct(string $name = null)
     {
         $this->filesystem = new Filesystem();
@@ -46,6 +49,7 @@ class PhotoSortCommand extends Command
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
+        $this->addOption('rename-duplicates', null, InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', true);
     }
 
     /**
@@ -60,6 +64,7 @@ class PhotoSortCommand extends Command
 
         $sourcePath = $input->getArgument('source-path');
         $destinationPath = $input->getArgument('destination-path');
+        $renameDuplicates = !!$input->getOption('rename-duplicates');
 
         $this->ensurePathExists($sourcePath);
         $this->ensurePathExists($destinationPath);
@@ -99,7 +104,7 @@ class PhotoSortCommand extends Command
 
             $imageSourceFilePath = $file->getRealPath();
 
-            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath);
+            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath, $renameDuplicates);
 
             $this->total++;
         }
@@ -111,6 +116,7 @@ class PhotoSortCommand extends Command
             'totals' => $this->total,
             'copied' => $this->copied,
             'identical' => $this->identical,
+            'skipped' => $this->skipped,
             'errors' => $this->errors,
         ];
         $result['log'] = $this->result;
@@ -156,7 +162,7 @@ class PhotoSortCommand extends Command
         }
     }
 
-    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath)
+    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath, $renameDuplicates = true)
     {
         // Check if a file with the same name already exists at destination
         if ($this->filesystem->exists($imageDestinationFilePath)) {
@@ -171,6 +177,14 @@ class PhotoSortCommand extends Command
                 $this->identical++;
                 return;
             }
+
+            // So there is a identical named file and no other file in the destination path is identical
+            if (!$renameDuplicates) {
+                $this->skipped++;
+                return;
+            }
+
+            $imageDestinationFilePath = $this->renameDestinationFile($imageDestinationFilePath);
         }
 
         // Copy the file
@@ -231,5 +245,27 @@ class PhotoSortCommand extends Command
         }
 
         return false;
+    }
+
+    private function renameDestinationFile(string $imageDestinationFilePath)
+    {
+        $breaker = 100;
+
+        $destinationFilePath = null;
+        do {
+            $pathinfo = pathinfo($imageDestinationFilePath);
+
+            $filename = $pathinfo['filename'] . '_' . (100 - $breaker + 1);
+
+            $destinationFilePath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $filename . '.' . $pathinfo['extension'];
+
+            if (!$this->filesystem->exists($destinationFilePath)) {
+                return $destinationFilePath;
+            }
+
+            $breaker--;
+        } while ($breaker);
+
+        throw new IOException("It was not possible to find a free rename filename in 100 tries for file: `{$imageDestinationFilePath}`.");
     }
 }
