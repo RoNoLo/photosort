@@ -2,11 +2,12 @@
 
 namespace RoNoLo\PhotoSort\Command;
 
+use App\Command\HashMapCommand;
 use App\Command\PhotoSortCommand;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
+class PhotoSortCommandMonthlyNoExistingDestinationTest extends BaseTestCase
 {
     var $sourcePath;
 
@@ -14,7 +15,7 @@ class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = __DIR__ . '/../../fixtures/photo-sort-no-existing-files.yaml';
+        $this->fixtureFile = __DIR__ . '/../../fixtures/photo-sort-monthly-no-existing-files.yaml';
 
         parent::setUp();
 
@@ -38,6 +39,7 @@ class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
             'command' => $command->getName(),
             'source-path' => $this->sourcePath,
             'destination-path' => $this->destinationPath,
+            '--monthly' => true
         ]);
 
         $command = $this->app->find('tests:directory-structure-check');
@@ -63,8 +65,8 @@ class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
 
         $this->assertEquals(18, count($log['log']));
         $this->assertEquals(18, $log['stats']['totals']);
-        $this->assertEquals(16, $log['stats']['copied']);
-        $this->assertEquals(2, $log['stats']['identical']);
+        $this->assertEquals(13, $log['stats']['copied']);
+        $this->assertEquals(5, $log['stats']['identical']);
         $this->assertEquals(0, $log['stats']['errors']);
         $this->assertEquals(0, $log['stats']['skipped']);
     }
