@@ -49,7 +49,7 @@ class PhotoSortCommand extends Command
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
-        $this->addOption('rename-duplicates', null, InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', true);
+        $this->addOption('not-rename-and-copy-duplicates', null, InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', true);
     }
 
     /**
@@ -64,7 +64,7 @@ class PhotoSortCommand extends Command
 
         $sourcePath = $input->getArgument('source-path');
         $destinationPath = $input->getArgument('destination-path');
-        $renameDuplicates = !!$input->getOption('rename-duplicates');
+        $notRenameDuplicates = !!$input->getOption('not-rename-and-copy-duplicates');
 
         $this->ensurePathExists($sourcePath);
         $this->ensurePathExists($destinationPath);
@@ -104,7 +104,7 @@ class PhotoSortCommand extends Command
 
             $imageSourceFilePath = $file->getRealPath();
 
-            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath, $renameDuplicates);
+            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath, $notRenameDuplicates);
 
             $this->total++;
         }
@@ -162,7 +162,7 @@ class PhotoSortCommand extends Command
         }
     }
 
-    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath, $renameDuplicates = true)
+    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath, $notRenameDuplicates = false)
     {
         // Check if a file with the same name already exists at destination
         if ($this->filesystem->exists($imageDestinationFilePath)) {
@@ -179,7 +179,7 @@ class PhotoSortCommand extends Command
             }
 
             // So there is a identical named file and no other file in the destination path is identical
-            if (!$renameDuplicates) {
+            if ($notRenameDuplicates) {
                 $this->skipped++;
                 return;
             }

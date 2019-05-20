@@ -11,9 +11,9 @@ fixtures:
 
 expected:
   structure:
-    - 2019/1901/190101/image_001_1.jpg
-    - 2019/1901/190101/image_002_1.jpg
-    - 2019/1903/190301/image_003_1.jpg
+    - 2019/1901/190101/image_001.jpg
+    - 2019/1901/190101/image_002.jpg
+    - 2019/1903/190301/image_003.jpg
 
   exceptions: null
 
