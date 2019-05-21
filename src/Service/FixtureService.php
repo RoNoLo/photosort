@@ -10,9 +10,9 @@ class FixtureService
 {
     private $filesystem;
 
-    public function __construct()
+    public function __construct(Filesystem $filesystem)
     {
-        $this->filesystem = new Filesystem();
+        $this->filesystem = $filesystem;
     }
 
     /**
@@ -22,7 +22,7 @@ class FixtureService
      *
      * @return void
      */
-    protected function execute(string $fixtureFile, string $resourcesPath, string $destinationPath)
+    public function create(string $fixtureFile, string $resourcesPath, string $destinationPath)
     {
         $fixtureFile = realpath($fixtureFile);
         $resourcesPath = realpath($resourcesPath);

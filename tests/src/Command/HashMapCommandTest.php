@@ -3,8 +3,10 @@
 namespace App\Tests\Command;
 
 use App\Command\HashMapCommand;
+use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Filesystem\Filesystem;
 
 class HashMapCommandTest extends BaseTestCase
 {
@@ -24,7 +26,7 @@ class HashMapCommandTest extends BaseTestCase
 
     public function testHasingImagesRecursive()
     {
-        $this->app->add(new HashMapCommand());
+        $this->app->add(new HashMapCommand(new Filesystem(), new HashService()));
 
         $command = $this->app->find('photosort:hash-map');
         $commandTester = new CommandTester($command);
@@ -40,17 +42,12 @@ class HashMapCommandTest extends BaseTestCase
         $json = file_get_contents($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
         $array = json_decode($json, JSON_PRETTY_PRINT);
 
-        $this->assertEquals(12, count($array['hashs']));
-        $this->assertEquals(18, count($array['paths']));
-        $this->assertEquals(0, count($array['errors']));
-        $this->assertEquals(null, $array['empty_hash']);
-        $this->assertEquals([], $array['errors']);
+        $this->assertEquals(18, count($array));
 
-        foreach ($array['paths'] as $filepath => $hashs) {
+        foreach ($array as $filepath => $hashs) {
             $this->assertArrayHasKey('sha1', $hashs);
             $this->assertArrayHasKey('difference', $hashs);
             $this->assertArrayHasKey('average', $hashs);
-            $this->assertArrayHasKey('block', $hashs);
             $this->assertArrayHasKey('perceptual', $hashs);
         }
     }

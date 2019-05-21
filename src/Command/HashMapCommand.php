@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Service\HashService;
 use Jenssegers\ImageHash\ImageHash;
 use Jenssegers\ImageHash\Implementations\AverageHash;
 use Jenssegers\ImageHash\Implementations\BlockHash;
@@ -18,15 +19,20 @@ use Symfony\Component\Finder\Finder;
 
 class HashMapCommand extends Command
 {
+    const IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
+
     protected static $defaultName = 'photosort:hash-map';
 
     private $filesystem;
 
-    public function __construct(string $name = null, Filesystem $filesystem)
+    private $hasher;
+
+    public function __construct(Filesystem $filesystem, HashService $hashService)
     {
         $this->filesystem = $filesystem;
+        $this->hasher = $hashService;
 
-        parent::__construct($name);
+        parent::__construct();
     }
 
     protected function configure()
@@ -54,70 +60,17 @@ class HashMapCommand extends Command
         $this->ensureSourcePath($source);
         $this->ensureOutputPath($outputPath);
 
-        $finder = new Finder();
+        $finder = Finder::create()
+            ->files()
+            ->name(self::IMAGES)
+            ->size('> 1K')
+            ->in($source);
 
-        $finder->files()->name('/\.jpe?g/')->in($source);
-
-        $hash2path = $path2hash = [];
-        $emptyHash = null;
-        $errors = [];
-        /** @var \SplFileInfo $file */
-        foreach ($finder as $file) {
-            if ($file->isDir()) {
-                continue;
-            }
-
-            try {
-                $path = $file->getRealPath();
-                $hash = sha1_file($path);
-
-                if ($file->getSize() === 0) {
-                    $emptyHash = $hash;
-                }
-
-                if ($output->isVerbose()) {
-                    $output->writeln('Hashed: ' . $hash . ': ' . $path);
-                }
-
-                $hash2path[$hash][] = $path;
-                $path2hash[$path] = [
-                  'sha1' => $hash,
-                ];
-
-                if ($imageHashs) {
-                    $differenceHasher = new ImageHash(new DifferenceHash());
-                    $averageHasher = new ImageHash(new AverageHash());
-                    $blockHasher = new ImageHash(new BlockHash());
-                    $perceptualHasher = new ImageHash(new PerceptualHash());
-
-                    $path2hash[$path]['difference'] = $differenceHasher->hash($path)->toHex();
-                    $path2hash[$path]['average'] = $averageHasher->hash($path)->toHex();
-                    $path2hash[$path]['block'] = $blockHasher->hash($path)->toHex();
-                    $path2hash[$path]['perceptual'] = $perceptualHasher->hash($path)->toHex();
-                }
-            } catch (IOException $e) {
-                if ($output->isVeryVerbose()) {
-                    $output->writeln('IO Error: ' . $e->getMessage());
-                }
-                $errors[$path] = $e->getMessage();
-            } catch (\Exception $e) {
-                if ($output->isVeryVerbose()) {
-                    $output->writeln('Error: ' . $e->getMessage());
-                }
-                $errors[$path] = $e->getMessage();
-            }
-        }
-
-        $result['source'] = realpath($source);
-        $result['created'] = date('r');
-        $result['empty_hash'] = $emptyHash;
-        $result['errors'] = $errors;
-        $result['hashs'] = $hash2path;
-        $result['paths'] = $path2hash;
+        $results = $this->hasher->hashFiles($finder, $imageHashs);
 
         $outputFile = $this->ensureOutputFile($outputPath, $source);
 
-        $this->filesystem->dumpFile($outputFile, json_encode($result, JSON_PRETTY_PRINT));
+        $this->filesystem->dumpFile($outputFile, json_encode($results, JSON_PRETTY_PRINT));
 
         if ($output->isVerbose()) {
             $output->writeln('Result: ' . $outputFile);

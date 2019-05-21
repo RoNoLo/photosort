@@ -1,48 +1,22 @@
 <?php
 
-namespace App\Command;
+namespace App\Service;
 
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Yaml\Yaml;
 
-class DirectoryStructureCheckCommand extends Command
+class DirectoryStructureCheckerService
 {
-    protected static $defaultName = 'tests:directory-structure-check';
-
     private $filesystem;
 
-    public function __construct(string $name = null)
+    public function __construct(Filesystem $filesystem)
     {
-        $this->filesystem = new Filesystem();
-
-        parent::__construct($name);
+        $this->filesystem = $filesystem;
     }
 
-    protected function configure()
+    protected function check(string $fixtureFile, string $rootPath)
     {
-        $this->setDescription('Checks if a directory structure and all its files are correct.');
-        $this->setHelp('Checks if a test structure if correct');
-
-        $this->addArgument('root-path', InputArgument::REQUIRED, 'Directory root to check');
-        $this->addArgument('fixture-file', InputArgument::REQUIRED, 'Fixtures YAML file');
-    }
-
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     * @return int|void|null
-     * @throws \Exception
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
-    {
-        $fixtureFile = $input->getArgument('fixture-file');
-        $rootPath = $input->getArgument('root-path');
-
         $fixtureFile = realpath($fixtureFile);
         $rootPath = realpath($rootPath);
 
