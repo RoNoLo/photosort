@@ -22,9 +22,9 @@ class HashMapCommand extends Command
 
     private $filesystem;
 
-    public function __construct(string $name = null)
+    public function __construct(string $name = null, Filesystem $filesystem)
     {
-        $this->filesystem = new Filesystem();
+        $this->filesystem = $filesystem;
 
         parent::__construct($name);
     }
