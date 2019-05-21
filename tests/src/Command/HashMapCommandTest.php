@@ -32,6 +32,7 @@ class HashMapCommandTest extends BaseTestCase
             'command' => $command->getName(),
             'source-path' => $this->sourcePath,
             '--output-path' => $this->outputPath,
+            '--calculate-image-content-hashs' => true
         ]);
 
         $this->assertFileExists($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
@@ -41,8 +42,17 @@ class HashMapCommandTest extends BaseTestCase
 
         $this->assertEquals(12, count($array['hashs']));
         $this->assertEquals(18, count($array['paths']));
+        $this->assertEquals(0, count($array['errors']));
         $this->assertEquals(null, $array['empty_hash']);
         $this->assertEquals([], $array['errors']);
+
+        foreach ($array['paths'] as $filepath => $hashs) {
+            $this->assertArrayHasKey('sha1', $hashs);
+            $this->assertArrayHasKey('difference', $hashs);
+            $this->assertArrayHasKey('average', $hashs);
+            $this->assertArrayHasKey('block', $hashs);
+            $this->assertArrayHasKey('perceptual', $hashs);
+        }
     }
 
     protected function tearDown()
