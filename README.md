@@ -109,4 +109,4 @@ If after the copy the image will not be readable, the source is not deleted and 
 - read EXIF and rotate image if needed (would be wonderful, but I guess a re-encoding of the image will happen)
 - extract dates from the filename (like WhatsApp filenames) to correctly store the files
 - option to just copy and not move the images
-- adding imagehash https://github.com/jenssegers/imagehash/
+- adding imagehash https://github.com/jenssegers/imagehash/ https://content-blockchain.org/research/testing-different-image-hash-functions/
