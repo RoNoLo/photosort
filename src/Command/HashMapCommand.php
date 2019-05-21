@@ -2,6 +2,11 @@
 
 namespace App\Command;
 
+use Jenssegers\ImageHash\ImageHash;
+use Jenssegers\ImageHash\Implementations\AverageHash;
+use Jenssegers\ImageHash\Implementations\BlockHash;
+use Jenssegers\ImageHash\Implementations\DifferenceHash;
+use Jenssegers\ImageHash\Implementations\PerceptualHash;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -31,6 +36,7 @@ class HashMapCommand extends Command
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addOption('output-path', null, InputOption::VALUE_OPTIONAL, 'Path to output JSON file (instead of command return)', null);
+        $this->addOption('calculate-image-content-hashs', null, InputOption::VALUE_OPTIONAL, 'Will also create image content hashes', false);
     }
 
     /**
@@ -43,6 +49,7 @@ class HashMapCommand extends Command
     {
         $source = $input->getArgument('source-path');
         $outputPath = $input->getOption('output-path');
+        $imageHashs = !!$input->getOption('calculate-image-content-hashs');
 
         $this->ensureSourcePath($source);
         $this->ensureOutputPath($outputPath);
@@ -62,7 +69,7 @@ class HashMapCommand extends Command
 
             try {
                 $path = $file->getRealPath();
-                $hash = sha1_file($file);
+                $hash = sha1_file($path);
 
                 if ($file->getSize() === 0) {
                     $emptyHash = $hash;
@@ -73,7 +80,21 @@ class HashMapCommand extends Command
                 }
 
                 $hash2path[$hash][] = $path;
-                $path2hash[$path] = $hash;
+                $path2hash[$path] = [
+                  'sha1' => $hash,
+                ];
+
+                if ($imageHashs) {
+                    $differenceHasher = new ImageHash(new DifferenceHash());
+                    $averageHasher = new ImageHash(new AverageHash());
+                    $blockHasher = new ImageHash(new BlockHash());
+                    $perceptualHasher = new ImageHash(new PerceptualHash());
+
+                    $path2hash[$path]['difference'] = $differenceHasher->hash($path)->toHex();
+                    $path2hash[$path]['average'] = $averageHasher->hash($path)->toHex();
+                    $path2hash[$path]['block'] = $blockHasher->hash($path)->toHex();
+                    $path2hash[$path]['perceptual'] = $perceptualHasher->hash($path)->toHex();
+                }
             } catch (IOException $e) {
                 if ($output->isVeryVerbose()) {
                     $output->writeln('IO Error: ' . $e->getMessage());
