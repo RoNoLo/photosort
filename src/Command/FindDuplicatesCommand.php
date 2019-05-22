@@ -2,10 +2,10 @@
 
 namespace App\Command;
 
+use App\Service\HashService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -16,9 +16,12 @@ class FindDuplicatesCommand extends Command
 
     private $filesystem;
 
-    public function __construct(Filesystem $filesystem)
+    private $hasher;
+
+    public function __construct(Filesystem $filesystem, HashService $hashService)
     {
         $this->filesystem = $filesystem;
+        $this->hasher = $hashService;
 
         parent::__construct();
     }
@@ -52,6 +55,34 @@ class FindDuplicatesCommand extends Command
         } catch (\Exception $e) {
             die ("Error: " . $e->getMessage());
         }
+    }
+
+    private function findDuplicates($data)
+    {
+        $files = array_keys($data);
+        $fileCount = count($files);
+
+        $results = [];
+        for ($i = 0; $i < $fileCount; $i++) {
+            if ($i + 1 > $fileCount) {
+                break;
+            }
+
+            $tmp = [];
+            $tmp[] = $files[$i];
+
+            for ($j = $i + 1; $j < $fileCount; $j++) {
+                if ($this->hasher->compareHashResults($data[$files[$i]], $data[$files[$j]])) {
+                    $tmp[] = $files[$j];
+                }
+            }
+
+            if (count($tmp) > 1) {
+                $results[] = $tmp;
+            }
+        }
+
+        return $results;
     }
 
     private function ensureSourceExists(?string $source)

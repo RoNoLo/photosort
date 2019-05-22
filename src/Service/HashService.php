@@ -24,10 +24,10 @@ class HashService
         $hashs['sha1'] = sha1_file($filePath);
 
         if ($imageHash) {
-            $differenceHasher = new ImageHash(new DifferenceHash());
-            $averageHasher = new ImageHash(new AverageHash());
+            $differenceHasher = new ImageHash(new DifferenceHash(4));
+            $averageHasher = new ImageHash(new AverageHash(4));
             // $blockHasher = new ImageHash(new BlockHash());
-            $perceptualHasher = new ImageHash(new PerceptualHash());
+            $perceptualHasher = new ImageHash(new PerceptualHash(16));
 
             $hashs['difference'] = $differenceHasher->hash($filePath)->toHex();
             $hashs['average'] = $averageHasher->hash($filePath)->toHex();
@@ -55,15 +55,15 @@ class HashService
         return $hashs;
     }
 
-    public function compareFile(string $filePath, string $otherFilePath, $imageHash = false, $maxAvgDistance = 3): bool
+    public function compareFile(string $filePath, string $otherFilePath, $imageHash = false, $maxAvgDistance = 2, $maxDistance = 3): bool
     {
         $fileHash = $this->hashFile($filePath, $imageHash);
         $otherHash = $this->hashFile($otherFilePath, $imageHash);
 
-        return $this->compareHashResults($fileHash, $otherHash, $maxAvgDistance);
+        return $this->compareHashResults($fileHash, $otherHash, $maxAvgDistance, $maxDistance);
     }
 
-    public function compareHashResults(array $hashsA, array $hashsB, $maxAvgDistance = 3): bool
+    public function compareHashResults(array $hashsA, array $hashsB, $maxAvgDistance = 2, $maxDistance = 3): bool
     {
         // The same sha1 beats everything
         if ($hashsA['sha1'] === $hashsB['sha1']) {
@@ -83,6 +83,10 @@ class HashService
         }
 
         if (count($compare)) {
+            if (max($compare) > $maxDistance) {
+                return false;
+            }
+
             return (array_sum($compare) / count($compare)) <= $maxAvgDistance;
         }
 
