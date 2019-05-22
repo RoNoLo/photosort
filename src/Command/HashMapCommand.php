@@ -3,11 +3,6 @@
 namespace App\Command;
 
 use App\Service\HashService;
-use Jenssegers\ImageHash\ImageHash;
-use Jenssegers\ImageHash\Implementations\AverageHash;
-use Jenssegers\ImageHash\Implementations\BlockHash;
-use Jenssegers\ImageHash\Implementations\DifferenceHash;
-use Jenssegers\ImageHash\Implementations\PerceptualHash;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -38,11 +33,11 @@ class HashMapCommand extends Command
     protected function configure()
     {
         $this->setDescription('Creates an hashmap on every file in a path.');
-        $this->setHelp('Creates a hashmap file, which may help to find duplicate files quicker.');
+        $this->setHelp('Creates a hashmap file, which may help to find duplicate files quicker. By default only files bigger than 1K are processed');
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
-        $this->addOption('output-path', null, InputOption::VALUE_OPTIONAL, 'Path to output JSON file (instead of command return)', null);
-        $this->addOption('calculate-image-content-hashs', null, InputOption::VALUE_OPTIONAL, 'Will also create image content hashes', false);
+        $this->addOption('output-path', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
+        $this->addOption('image-hashs', 'i', InputOption::VALUE_NONE, 'Will also create image content hashes');
     }
 
     /**
@@ -53,22 +48,22 @@ class HashMapCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $source = $input->getArgument('source-path');
+        $sourcePath = $input->getArgument('source-path');
         $outputPath = $input->getOption('output-path');
-        $imageHashs = !!$input->getOption('calculate-image-content-hashs');
+        $imageHashs = !!$input->getOption('image-hashs');
 
-        $this->ensureSourcePath($source);
+        $this->ensureSourcePath($sourcePath);
         $this->ensureOutputPath($outputPath);
 
         $finder = Finder::create()
             ->files()
             ->name(self::IMAGES)
             ->size('> 1K')
-            ->in($source);
+            ->in($sourcePath);
 
         $results = $this->hasher->hashFiles($finder, $imageHashs);
 
-        $outputFile = $this->ensureOutputFile($outputPath, $source);
+        $outputFile = $this->ensureOutputFile($outputPath, $sourcePath);
 
         $this->filesystem->dumpFile($outputFile, json_encode($results, JSON_PRETTY_PRINT));
 
