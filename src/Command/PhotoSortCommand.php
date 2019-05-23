@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Service\HashService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -37,11 +38,15 @@ class PhotoSortCommand extends Command
 
     private $skipped = 0;
 
-    public function __construct(string $name = null)
-    {
-        $this->filesystem = new Filesystem();
+    /** @var HashService */
+    private $hasher;
 
-        parent::__construct($name);
+    public function __construct(Filesystem $filesystem, HashService $hashService)
+    {
+        $this->filesystem = $filesystem;
+        $this->hasher = $hashService;
+
+        parent::__construct();
     }
 
     protected function configure()
@@ -242,10 +247,9 @@ class PhotoSortCommand extends Command
 
     private function checkIdentical($sourceFile, $destinationFile)
     {
-        $sourceFileHash = sha1_file($sourceFile);
-        $destinationFileHash = sha1_file($destinationFile);
+        $result = $this->hasher->compareFile($sourceFile, $destinationFile);
 
-        if ($sourceFileHash === $destinationFileHash) {
+        if ($result === 0) {
             $this->result[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
 
             if ($this->output->isDebug()) {
@@ -253,6 +257,12 @@ class PhotoSortCommand extends Command
             }
 
             return true;
+        }
+
+        if ($result <= 3) {
+            if ($this->output->isVeryVerbose()) {
+                $this->output->writeln($this->currentFile->getPathname() . " is nearly identical to " . $destinationFile . " Score({$result})");
+            }
         }
 
         return false;
@@ -270,6 +280,8 @@ class PhotoSortCommand extends Command
             if ($file->isDir()) {
                 continue;
             }
+
+            // TODO: build the compare decition here
 
             $path = $file->getRealPath();
             $hash = sha1_file($file);
