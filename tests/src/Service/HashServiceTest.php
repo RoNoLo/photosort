@@ -91,17 +91,17 @@ class HashServiceTest extends BaseTestCase
         $result10 = $hasher->compareFile($filePath7, $filePath8, true);
         $result11 = $hasher->compareFile($filePath5, $filePath9, true);
 
-        $this->assertTrue($result1);
-        $this->assertFalse($result2);
-        $this->assertFalse($result3);
-        $this->assertFalse($result4);
-        $this->assertFalse($result5);
-        $this->assertTrue($result6);
-        $this->assertFalse($result7);
-        $this->assertFalse($result8);
-        $this->assertTrue($result9);
-        $this->assertTrue($result10);
-        $this->assertTrue($result11);
+        $this->assertEquals(0, $result1);
+        $this->assertTrue($result2 > 0);
+        $this->assertTrue($result3 > 0);
+        $this->assertTrue($result4 > 0);
+        $this->assertTrue($result5 > 0);
+        $this->assertEquals(0, $result6);
+        $this->assertTrue($result7 > 0);
+        $this->assertTrue($result8 > 0);
+        $this->assertEquals(1, $result9);
+        $this->assertEquals(0, $result10);
+        $this->assertEquals(0, $result11);
     }
 
     protected function tearDown()

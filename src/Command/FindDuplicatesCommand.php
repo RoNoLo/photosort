@@ -18,6 +18,9 @@ class FindDuplicatesCommand extends Command
 
     private $hasher;
 
+    /** @var OutputInterface */
+    private $output;
+
     public function __construct(Filesystem $filesystem, HashService $hashService)
     {
         $this->filesystem = $filesystem;
@@ -42,6 +45,8 @@ class FindDuplicatesCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->output = $output;
+
         try {
             $sourceFile = $input->getArgument('source-file');
 
@@ -59,6 +64,7 @@ class FindDuplicatesCommand extends Command
 
     private function findDuplicates($data)
     {
+        $found = [];
         $files = array_keys($data);
         $fileCount = count($files);
 
@@ -71,9 +77,20 @@ class FindDuplicatesCommand extends Command
             $tmp = [];
             $tmp[] = $files[$i];
 
+
             for ($j = $i + 1; $j < $fileCount; $j++) {
-                if ($this->hasher->compareHashResults($data[$files[$i]], $data[$files[$j]])) {
+                if (in_array($files[$i], $found)) {
+                    continue;
+                }
+                $result = $this->hasher->compareHashResults($data[$files[$i]], $data[$files[$j]]);
+
+                if ($this->output->isVerbose()) {
+                    $this->output->writeln("Checking file: " . $files[$i] . " vs. " . $files[$j] . " result is: " . $result);
+                }
+
+                if ($result === 0) {
                     $tmp[] = $files[$j];
+                    $found[] = $files[$j];
                 }
             }
 

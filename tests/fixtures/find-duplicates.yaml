@@ -1,6 +1,8 @@
 fixtures:
   image_001.jpg:
     source/image_001.jpg: null
+    source/image_001_1.jpg: null
+    source/image_001_2.jpg: null
   image_002.jpg:
     source/image_002.jpg: null
   image_003.jpg:
@@ -27,12 +29,17 @@ fixtures:
     source/horst/tommy/image_008.jpg: null
   image_010.jpg:
     source/horst/tommy/image_010.jpg: null
+    source/horst/tommy/image_010_5.jpg: null
   image_011.jpg:
     source/horst/tommy/image_011.jpg: null
+  image_011-compressor.jpg:
+    source/horst/tommy/image_011-compressor.jpg: null
   image_013.jpg:
     source/image_013.jpg: null
   image_014.jpg:
     source/image_014.jpg: null
+    source/torte/image_014.jpg: null
+    source/torte/kirsche/image_014_1.jpg: null
 
 expected:
   data:
