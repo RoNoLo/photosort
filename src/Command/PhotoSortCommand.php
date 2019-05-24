@@ -26,7 +26,7 @@ class PhotoSortCommand extends Command
     /** @var \SplFileInfo */
     private $currentFile;
 
-    private $result = [];
+    private $log = [];
 
     private $errors = 0;
 
@@ -102,7 +102,7 @@ class PhotoSortCommand extends Command
             }
 
             if ($file->getSize() === 0) {
-                $this->result[$this->currentFile->getPathname()] = 'skipped because the filesize was 0 bytes';
+                $this->log[$this->currentFile->getPathname()] = 'skipped because the filesize was 0 bytes';
                 $this->skipped++;
             }
 
@@ -135,8 +135,7 @@ class PhotoSortCommand extends Command
             'skipped' => $this->skipped,
             'errors' => $this->errors,
         ];
-        $result['log'] = $this->result;
-        $result['log'] = $this->result;
+        $result['log'] = $this->log;
 
         $logFile = $sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json';
 
@@ -208,7 +207,7 @@ class PhotoSortCommand extends Command
 
             // So there is a identical named file and no other file in the destination path is identical
             if ($notRenameDuplicates) {
-                $this->result[$this->currentFile->getPathname()] = 'skipped because a file with identical name, but different content, was already at destination ' . $imageDestinationFilePath;
+                $this->log[$this->currentFile->getPathname()] = 'skipped because a file with identical name, but different content, was already at destination ' . $imageDestinationFilePath;
                 $this->skipped++;
 
                 if ($this->output->isDebug()) {
@@ -233,7 +232,7 @@ class PhotoSortCommand extends Command
                 $this->filesystem->copy($imageSourceFilePath, $imageDestinationFilePath);
             }
 
-            $this->result[$this->currentFile->getPathname()] = 'copied to ' . $imageDestinationFilePath;
+            $this->log[$this->currentFile->getPathname()] = 'copied to ' . $imageDestinationFilePath;
             $this->copied++;
 
             if ($this->output->isVerbose()) {
@@ -241,7 +240,7 @@ class PhotoSortCommand extends Command
             }
         } catch (IOException $e) {
             $this->errors++;
-            $this->result[$this->currentFile->getPathname()] = 'error on copy ' . $e->getMessage();
+            $this->log[$this->currentFile->getPathname()] = 'error on copy ' . $e->getMessage();
         }
     }
 
@@ -250,7 +249,7 @@ class PhotoSortCommand extends Command
         $result = $this->hasher->compareFile($sourceFile, $destinationFile);
 
         if ($result === 0) {
-            $this->result[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
+            $this->log[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
 
             if ($this->output->isDebug()) {
                 $this->output->writeln($this->currentFile->getPathname() . " is identical to " . $destinationFile);
@@ -274,35 +273,35 @@ class PhotoSortCommand extends Command
 
         $finder->files()->name(self::IMAGES)->in($destinationPath);
 
-        $hashs = [];
+        $sourceFileSize = filesize($sourceFile);
+
         /** @var \SplFileInfo $file */
         foreach ($finder as $file) {
             if ($file->isDir()) {
                 continue;
             }
 
-            // TODO: build the compare decition here
-
-            $path = $file->getRealPath();
-            $hash = sha1_file($file);
-
             if ($file->getSize() === 0) {
                 continue;
             }
 
-            $hashs[$hash][] = $path;
-        }
-
-        $sourceFileHash = sha1_file($sourceFile);
-
-        if (isset($hashs[$sourceFileHash])) {
-            $this->result[$this->currentFile->getPathname()] = 'identical to ' . implode(', ', $hashs[$sourceFileHash]);
-
-            if ($this->output->isDebug()) {
-                $this->output->writeln($this->currentFile->getPathname() . " is identical to " . $hashs[$sourceFileHash][0]);
+            // as a small speedhack, only files which size will diff by max 10% will be checked
+            if (!$this->checkFileSize($sourceFileSize, $file->getSize())) {
+                continue;
             }
 
-            return true;
+            $destinationFile = $file->getRealPath();
+            $result = $this->hasher->compareFile($sourceFile, $destinationFile);
+
+            if ($result === 0) {
+                $this->log[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
+
+                if ($this->output->isDebug()) {
+                    $this->output->writeln($this->currentFile->getPathname() . " is identical to " . $destinationFile);
+                }
+
+                return true;
+            }
         }
 
         return false;
@@ -328,5 +327,13 @@ class PhotoSortCommand extends Command
         } while ($breaker);
 
         throw new IOException("It was not possible to find a free rename filename in 100 tries for file: `{$imageDestinationFilePath}`.");
+    }
+
+    private function checkFileSize(int $sourceFileSize, int $destinationFileSize)
+    {
+        $sourceFileMin = $sourceFileSize * 0.9;
+        $sourceFileMax = $sourceFileSize * 1.1;
+
+        return $destinationFileSize >= $sourceFileMin && $destinationFileSize <= $sourceFileMax;
     }
 }

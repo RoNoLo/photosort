@@ -104,6 +104,47 @@ class HashServiceTest extends BaseTestCase
         $this->assertEquals(0, $result11);
     }
 
+    public function testCheckForSimilarPicturesMorePixels()
+    {
+        $resourcesPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'resources';
+
+        $filePath1 = $resourcesPath . DIRECTORY_SEPARATOR . 'image_002.jpg';
+        $filePath2 = $resourcesPath . DIRECTORY_SEPARATOR . 'image_003.jpg';
+        $filePath3 = $resourcesPath . DIRECTORY_SEPARATOR . 'image_004.jpg';
+        $filePath4 = $resourcesPath . DIRECTORY_SEPARATOR . 'image_010.jpg';
+        $filePath5 = $resourcesPath . DIRECTORY_SEPARATOR . 'image_011.jpg';
+        $filePath6 = $resourcesPath . DIRECTORY_SEPARATOR . 'image_003-compressor.jpg';
+        $filePath7 = $resourcesPath . DIRECTORY_SEPARATOR . 'image_007.jpg';
+        $filePath8 = $resourcesPath . DIRECTORY_SEPARATOR . 'image_007-compressor.jpg';
+        $filePath9 = $resourcesPath . DIRECTORY_SEPARATOR . 'image_011-compressor.jpg';
+
+        $hasher = new HashService();
+
+        $result1 = $hasher->compareFile($filePath1, $filePath1, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result2 = $hasher->compareFile($filePath1, $filePath2, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result3 = $hasher->compareFile($filePath1, $filePath3, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result4 = $hasher->compareFile($filePath1, $filePath4, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result5 = $hasher->compareFile($filePath1, $filePath5, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result6 = $hasher->compareFile($filePath4, $filePath4, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result7 = $hasher->compareFile($filePath4, $filePath5, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result8 = $hasher->compareFile($filePath6, $filePath7, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result9 = $hasher->compareFile($filePath2, $filePath6, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result10 = $hasher->compareFile($filePath7, $filePath8, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result11 = $hasher->compareFile($filePath5, $filePath9, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+
+        $this->assertEquals(0, $result1);
+        $this->assertTrue($result2 > 0);
+        $this->assertTrue($result3 > 0);
+        $this->assertTrue($result4 > 0);
+        $this->assertTrue($result5 > 0);
+        $this->assertEquals(0, $result6);
+        $this->assertTrue($result7 > 0);
+        $this->assertTrue($result8 > 0);
+        $this->assertTrue($result9 > 0);
+        $this->assertTrue($result10 > 0);
+        $this->assertTrue($result11 > 0);
+    }
+
     protected function tearDown()
     {
         if ($this->filesystem->exists($this->sourcePath)) {

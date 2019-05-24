@@ -30,6 +30,7 @@
     "psr/log": "1.0.2",
     "ext-ctype": "*",
     "ext-iconv": "*",
+    "ext-gd": "*",
     "symfony/console": "4.2.*",
     "symfony/dotenv": "4.2.*",
     "symfony/config": "~4.2",
