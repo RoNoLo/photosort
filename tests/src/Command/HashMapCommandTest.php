@@ -34,7 +34,7 @@ class HashMapCommandTest extends BaseTestCase
             'command' => $command->getName(),
             'source-path' => $this->sourcePath,
             '--output-path' => $this->outputPath,
-            '--calculate-image-content-hashs' => true
+            '--image-hashs' => true
         ]);
 
         $this->assertFileExists($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
@@ -42,7 +42,7 @@ class HashMapCommandTest extends BaseTestCase
         $json = file_get_contents($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
         $array = json_decode($json, JSON_PRETTY_PRINT);
 
-        $this->assertEquals(18, count($array));
+        $this->assertEquals(20, count($array));
 
         foreach ($array as $filepath => $hashs) {
             $this->assertArrayHasKey('sha1', $hashs);

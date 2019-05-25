@@ -35,7 +35,6 @@ class HashService
         $filePath = realpath($filePath);
 
         $hashs = [];
-
         $hashs['sha1'] = sha1_file($filePath);
 
         if ($imageHash) {
@@ -151,7 +150,7 @@ class HashService
         }
     }
 
-    private function fetchHashQualityByImage(bool $filePath, int $hashQuality)
+    private function fetchHashQualityByImage(string $filePath, int $hashQuality)
     {
         $this->ensureHashQuality($hashQuality);
 

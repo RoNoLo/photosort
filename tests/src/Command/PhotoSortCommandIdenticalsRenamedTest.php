@@ -4,8 +4,10 @@ namespace RoNoLo\PhotoSort\Command;
 
 use App\Command\HashMapCommand;
 use App\Command\PhotoSortCommand;
+use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Filesystem\Filesystem;
 
 class PhotoSortCommandIdenticalsRenamedTest extends BaseTestCase
 {
@@ -25,14 +27,13 @@ class PhotoSortCommandIdenticalsRenamedTest extends BaseTestCase
             $this->filesystem->mkdir($destinationPath);
         }
 
-
         $this->sourcePath = realpath($tmpPath . DIRECTORY_SEPARATOR . 'source');
         $this->destinationPath = realpath($tmpPath . DIRECTORY_SEPARATOR . 'destination');
     }
 
     public function testOptionsAreDefaultAndNoExistingStructure()
     {
-        $this->app->add(new PhotoSortCommand());
+        $this->app->add(new PhotoSortCommand(new Filesystem(), new HashService()));
 
         $command = $this->app->find('photosort:photo-sort');
         $commandTester = new CommandTester($command);
