@@ -10,7 +10,7 @@ use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Filesystem\Filesystem;
 
-class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
+class PhotoSortCommandDuplicateButNotIdenticalTest extends BaseTestCase
 {
     var $sourcePath;
 
