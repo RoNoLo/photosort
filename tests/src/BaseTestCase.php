@@ -32,4 +32,9 @@ class BaseTestCase extends TestCase
             $fixtureService->create($this->fixtureFile, $resourcePath, $destinationPath);
         }
     }
+
+    protected function normalizePath($path)
+    {
+        return str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+    }
 }

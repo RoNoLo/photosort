@@ -58,7 +58,6 @@ class PhotoSortCommand extends Command
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
         $this->addOption('not-rename-and-copy-duplicates', null, InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', false);
         $this->addOption('monthly', null, InputOption::VALUE_OPTIONAL, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images', false);
-        $this->addOption('dry-run', null, InputOption::VALUE_OPTIONAL, 'No copy, just the log what would be done', false);
     }
 
     /**
@@ -75,7 +74,6 @@ class PhotoSortCommand extends Command
         $destinationPath = $input->getArgument('destination-path');
         $notRenameDuplicates = !!$input->getOption('not-rename-and-copy-duplicates');
         $monthly = !!$input->getOption('monthly');
-        $dryRun = !!$input->getOption('dry-run');
 
         $this->ensurePathExists($sourcePath);
         $this->ensurePathExists($destinationPath);
@@ -120,7 +118,7 @@ class PhotoSortCommand extends Command
 
             $imageSourceFilePath = $file->getRealPath();
 
-            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath, $notRenameDuplicates, $dryRun);
+            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath, $notRenameDuplicates);
 
             $this->total++;
         }
@@ -185,7 +183,7 @@ class PhotoSortCommand extends Command
         }
     }
 
-    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath, $notRenameDuplicates = false, $dryRun = false)
+    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath, $notRenameDuplicates = false)
     {
         if ($this->output->isVeryVerbose()) {
             $this->output->writeln("Try to copy from: " . $imageSourceFilePath . " to: ". $imageDestinationFilePath);
@@ -228,9 +226,7 @@ class PhotoSortCommand extends Command
 
         // Copy the file
         try {
-            if (!$dryRun) {
-                $this->filesystem->copy($imageSourceFilePath, $imageDestinationFilePath);
-            }
+            $this->filesystem->copy($imageSourceFilePath, $imageDestinationFilePath);
 
             $this->log[$this->currentFile->getPathname()] = 'copied to ' . $imageDestinationFilePath;
             $this->copied++;

@@ -4,6 +4,7 @@ namespace RoNoLo\PhotoSort\Command;
 
 use App\Command\HashMapCommand;
 use App\Command\PhotoSortCommand;
+use App\Service\DirectoryStructureCheckerService;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -41,18 +42,14 @@ class PhotoSortCommandDuplicateButNotIdenticalNoRenameTest extends BaseTestCase
             'command' => $command->getName(),
             'source-path' => $this->sourcePath,
             'destination-path' => $this->destinationPath,
-            '--not-rename-and-copy-duplicates'
+            '--not-rename-and-copy-duplicates' => true
         ]);
 
-        $command = $this->app->find('tests:directory-structure-check');
-        $commandTester = new CommandTester($command);
-        $result = $commandTester->execute([
-            'command' => $command->getName(),
-            'root-path' => $this->destinationPath,
-            'fixture-file' => $this->fixtureFile,
-        ]);
+        $structureTester = new DirectoryStructureCheckerService($this->filesystem);
 
-        $this->assertEquals(0, $result);
+        $result = $structureTester->check($this->fixtureFile, $this->destinationPath);
+
+        $this->assertTrue($result);
 
         $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json');
 

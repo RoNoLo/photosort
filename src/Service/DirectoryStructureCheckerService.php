@@ -4,6 +4,7 @@ namespace App\Service;
 
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
 
 class DirectoryStructureCheckerService
@@ -15,7 +16,7 @@ class DirectoryStructureCheckerService
         $this->filesystem = $filesystem;
     }
 
-    protected function check(string $fixtureFile, string $rootPath)
+    public function check(string $fixtureFile, string $rootPath): bool
     {
         $fixtureFile = realpath($fixtureFile);
         $rootPath = realpath($rootPath);
@@ -27,6 +28,7 @@ class DirectoryStructureCheckerService
 
         $this->ensureDataStructure($data);
 
+        // This checks the file data against the directory structure
         foreach ($data['expected']['structure'] as $expected) {
             $expectedPath = $this->normalizePath($rootPath . DIRECTORY_SEPARATOR . $expected);
 
@@ -35,7 +37,16 @@ class DirectoryStructureCheckerService
             }
         }
 
-        return 0;
+        // this will test the directory structure against the file
+        $finder = Finder::create()->files()->in($rootPath);
+
+        foreach ($finder as $file) {
+            if (!in_array($this->unixPath($file->getRelativePathname()), $data['expected']['structure'])) {
+                throw new \Exception("The file " . $file->getRelativePathname() . " was found, but is not expected in the structure.");
+            }
+        }
+
+        return true;
     }
 
     private function ensureSourceFile(?string $sourceFile)
@@ -61,5 +72,10 @@ class DirectoryStructureCheckerService
         if (!isset($data['expected']['structure'])) {
             throw new \Exception("The fixtures YAML files does not contains an `expected/structure` section.");
         }
+    }
+
+    private function unixPath($path)
+    {
+        return str_replace(['/', '\\'], '/', $path);
     }
 }
