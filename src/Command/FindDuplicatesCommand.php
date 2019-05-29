@@ -85,7 +85,7 @@ class FindDuplicatesCommand extends Command
                 $result = $this->hasher->compareHashResults($data[$files[$i]], $data[$files[$j]]);
 
                 if ($this->output->isVerbose()) {
-                    $this->output->writeln("Checking file: " . $files[$i] . " vs. " . $files[$j] . " result is: " . $result);
+                    $this->output->writeln("Checking file: " . $files[$i] . " vs. " . $files[$j] . " result is: " . ($result ? "same" : "different"));
                 }
 
                 if ($result) {

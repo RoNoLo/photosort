@@ -37,7 +37,7 @@ class HashMapCommand extends Command
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addOption('output-path', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
-        $this->addOption('image-hashs', 'i', InputOption::VALUE_NONE, 'Will also create image content hashes');
+        $this->addOption('image-hashs', 'i', InputOption::VALUE_OPTIONAL, 'Will also create image content hashes', true);
     }
 
     /**
@@ -59,6 +59,7 @@ class HashMapCommand extends Command
             ->files()
             ->name(self::IMAGES)
             ->size('> 1K')
+            ->sortByName()
             ->in($sourcePath);
 
         $this->hasher->setOutput($output);

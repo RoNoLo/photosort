@@ -50,8 +50,16 @@ class HashService
     {
         $hashs = [];
 
+        $fileCount = $files->count();
+
+        if ($this->output instanceof OutputInterface && $this->output->isVerbose()) {
+            $this->output->writeln("Found {$fileCount} files to hash.");
+        }
+
         /** @var \SplFileInfo $file */
+        $i = 0;
         foreach ($files as $file) {
+            $i++;
             if ($file->isDir()) {
                 continue;
             }
@@ -60,10 +68,8 @@ class HashService
 
             $hashs[$filePath] = $this->hashFile($filePath, $imageHash);
 
-            if ($this->output instanceof OutputInterface) {
-                if ($this->output->isVerbose()) {
-                    $this->output->writeln("Hashing: " . $hashs[$filePath]['sha1'] . " - " . $filePath . " ...");
-                }
+            if ($this->output instanceof OutputInterface && $this->output->isVerbose()) {
+                $this->output->writeln("{$i}/{$fileCount}: " . $hashs[$filePath]['sha1'] . " - " . $filePath . " ...");
             }
         }
 

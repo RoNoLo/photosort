@@ -20,6 +20,10 @@ class PhotoSortCommand extends Command
 
     private $filesystem;
 
+    private $sourcePath;
+
+    private $destinationPath;
+
     /** @var OutputInterface */
     private $output;
 
@@ -49,6 +53,11 @@ class PhotoSortCommand extends Command
         parent::__construct();
     }
 
+    public function __destruct()
+    {
+        $this->writeLogfile();
+    }
+
     protected function configure()
     {
         $this->setDescription('Copies images into a folder structure YY/YYMM/YYMMDD/files');
@@ -70,8 +79,8 @@ class PhotoSortCommand extends Command
     {
         $this->output = $output;
 
-        $sourcePath = $input->getArgument('source-path');
-        $destinationPath = $input->getArgument('destination-path');
+        $this->sourcePath = $sourcePath = $input->getArgument('source-path');
+        $this->destinationPath = $destinationPath = $input->getArgument('destination-path');
         $notRenameDuplicates = !!$input->getOption('not-rename-and-copy-duplicates');
         $monthly = !!$input->getOption('monthly');
 
@@ -123,27 +132,7 @@ class PhotoSortCommand extends Command
             $this->total++;
         }
 
-        $result['source'] = $sourcePath;
-        $result['destination'] = $destinationPath;
-        $result['created'] = date('r');
-        $result['stats'] = [
-            'totals' => $this->total,
-            'copied' => $this->copied,
-            'identical' => $this->identical,
-            'skipped' => $this->skipped,
-            'errors' => $this->errors,
-        ];
-        $result['log'] = $this->log;
-
-        $logFile = $sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json';
-
-        $this->filesystem->dumpFile($logFile, json_encode($result, JSON_PRETTY_PRINT));
-
-        if ($output->isVerbose()) {
-            $output->writeln('Result: ' . $logFile);
-        }
-
-        return $result;
+        $this->writeLogfile();
     }
 
     private function buildDestinationPath(string $destination, \SplFileInfo $file, $monthly = false)
@@ -242,7 +231,7 @@ class PhotoSortCommand extends Command
 
     private function checkIdentical($sourceFile, $destinationFile)
     {
-        $result = $this->hasher->compareFile($sourceFile, $destinationFile);
+        $result = $this->hasher->compareFile($sourceFile, $destinationFile, true);
 
         if ($result) {
             $this->log[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
@@ -325,5 +314,34 @@ class PhotoSortCommand extends Command
         $sourceFileMax = $sourceFileSize * 1.1;
 
         return $destinationFileSize >= $sourceFileMin && $destinationFileSize <= $sourceFileMax;
+    }
+
+    private function writeLogfile()
+    {
+        if (!count($this->log)) {
+            return;
+        }
+
+        $result['source'] = $this->sourcePath;
+        $result['destination'] = $this->destinationPath;
+        $result['created'] = date('r');
+        $result['stats'] = [
+            'totals' => $this->total,
+            'copied' => $this->copied,
+            'identical' => $this->identical,
+            'skipped' => $this->skipped,
+            'errors' => $this->errors,
+        ];
+        $result['log'] = $this->log;
+
+        $logFile = $this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json';
+
+        $this->filesystem->dumpFile($logFile, json_encode($result, JSON_PRETTY_PRINT));
+
+        if ($this->output->isVerbose()) {
+            $this->output->writeln('Result: ' . $logFile);
+        }
+
+        $this->log = [];
     }
 }
