@@ -88,7 +88,7 @@ class FindDuplicatesCommand extends Command
                     $this->output->writeln("Checking file: " . $files[$i] . " vs. " . $files[$j] . " result is: " . $result);
                 }
 
-                if ($result === 0) {
+                if ($result) {
                     $tmp[] = $files[$j];
                     $found[] = $files[$j];
                 }

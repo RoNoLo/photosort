@@ -244,7 +244,7 @@ class PhotoSortCommand extends Command
     {
         $result = $this->hasher->compareFile($sourceFile, $destinationFile);
 
-        if ($result === 0) {
+        if ($result) {
             $this->log[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
 
             if ($this->output->isDebug()) {
@@ -252,12 +252,6 @@ class PhotoSortCommand extends Command
             }
 
             return true;
-        }
-
-        if ($result <= 3) {
-            if ($this->output->isVeryVerbose()) {
-                $this->output->writeln($this->currentFile->getPathname() . " is nearly identical to " . $destinationFile . " Score({$result})");
-            }
         }
 
         return false;
@@ -289,7 +283,7 @@ class PhotoSortCommand extends Command
             $destinationFile = $file->getRealPath();
             $result = $this->hasher->compareFile($sourceFile, $destinationFile);
 
-            if ($result === 0) {
+            if ($result) {
                 $this->log[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
 
                 if ($this->output->isDebug()) {

@@ -48,7 +48,7 @@ class FindDuplicatesCommandTest extends BaseTestCase
         $json = file_get_contents($this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_duplicates.json');
         $result = json_decode($json, JSON_OBJECT_AS_ARRAY);
 
-        $this->assertCount(8, $result);
+        $this->assertCount(6, $result);
     }
 
     public function tearDown()
