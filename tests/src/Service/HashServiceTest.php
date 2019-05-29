@@ -29,18 +29,14 @@ class HashServiceTest extends BaseTestCase
 
         $hashs = $hasher->hashFiles($finder, true);
 
-        $this->assertEquals(18, count($hashs));
+        $this->assertEquals(20, count($hashs));
 
         foreach ($hashs as $filePath => $list) {
             $this->assertArrayHasKey('sha1', $list);
-            $this->assertArrayHasKey('difference', $list);
-            $this->assertArrayHasKey('average', $list);
-            $this->assertArrayHasKey('perceptual', $list);
+            $this->assertArrayHasKey('signature', $list);
 
             $this->assertNotEmpty($list['sha1']);
-            $this->assertNotEmpty($list['difference']);
-            $this->assertNotEmpty($list['average']);
-            $this->assertNotEmpty($list['perceptual']);
+            $this->assertNotEmpty($list['signature']);
         }
     }
 
@@ -53,14 +49,10 @@ class HashServiceTest extends BaseTestCase
         $hashs = $hasher->hashFile($filePath, true);
 
         $this->assertArrayHasKey('sha1', $hashs);
-        $this->assertArrayHasKey('difference', $hashs);
-        $this->assertArrayHasKey('average', $hashs);
-        $this->assertArrayHasKey('perceptual', $hashs);
+        $this->assertArrayHasKey('signature', $hashs);
 
         $this->assertNotEmpty($hashs['sha1']);
-        $this->assertNotEmpty($hashs['difference']);
-        $this->assertNotEmpty($hashs['average']);
-        $this->assertNotEmpty($hashs['perceptual']);
+        $this->assertNotEmpty($hashs['signature']);
     }
 
     public function testCheckForSimilarPictures()
@@ -91,17 +83,17 @@ class HashServiceTest extends BaseTestCase
         $result10 = $hasher->compareFile($filePath7, $filePath8, true);
         $result11 = $hasher->compareFile($filePath5, $filePath9, true);
 
-        $this->assertEquals(0, $result1);
-        $this->assertTrue($result2 > 0);
-        $this->assertTrue($result3 > 0);
-        $this->assertTrue($result4 > 0);
-        $this->assertTrue($result5 > 0);
-        $this->assertEquals(0, $result6);
-        $this->assertTrue($result7 > 0);
-        $this->assertTrue($result8 > 0);
-        $this->assertEquals(1, $result9);
-        $this->assertEquals(0, $result10);
-        $this->assertEquals(0, $result11);
+        $this->assertTrue($result1);
+        $this->assertFalse($result2);
+        $this->assertFalse($result3);
+        $this->assertFalse($result4);
+        $this->assertFalse($result5);
+        $this->assertTrue($result6);
+        $this->assertFalse($result7);
+        $this->assertFalse($result8);
+        $this->assertFalse($result9);
+        $this->assertFalse($result10);
+        $this->assertFalse($result11);
     }
 
     public function testCheckForSimilarPicturesMorePixels()
@@ -120,29 +112,30 @@ class HashServiceTest extends BaseTestCase
 
         $hasher = new HashService();
 
-        $result1 = $hasher->compareFile($filePath1, $filePath1, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result2 = $hasher->compareFile($filePath1, $filePath2, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result3 = $hasher->compareFile($filePath1, $filePath3, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result4 = $hasher->compareFile($filePath1, $filePath4, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result5 = $hasher->compareFile($filePath1, $filePath5, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result6 = $hasher->compareFile($filePath4, $filePath4, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result7 = $hasher->compareFile($filePath4, $filePath5, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result8 = $hasher->compareFile($filePath6, $filePath7, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result9 = $hasher->compareFile($filePath2, $filePath6, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result10 = $hasher->compareFile($filePath7, $filePath8, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
-        $result11 = $hasher->compareFile($filePath5, $filePath9, true, HashService::HASH_IMAGE_RESIZE_DOUBLE);
+        $result1 = $hasher->compareFile($filePath1, $filePath1, true);
+        $result2 = $hasher->compareFile($filePath1, $filePath2, true);
+        $result3 = $hasher->compareFile($filePath1, $filePath3, true);
+        $result4 = $hasher->compareFile($filePath1, $filePath4, true);
+        $result5 = $hasher->compareFile($filePath1, $filePath5, true);
+        $result6 = $hasher->compareFile($filePath4, $filePath4, true);
+        $result7 = $hasher->compareFile($filePath4, $filePath5, true);
+        $result8 = $hasher->compareFile($filePath6, $filePath7, true);
+        $result9 = $hasher->compareFile($filePath2, $filePath6, true);
+        $result10 = $hasher->compareFile($filePath7, $filePath8, true);
+        $result11 = $hasher->compareFile($filePath5, $filePath9, true);
 
-        $this->assertEquals(0, $result1);
-        $this->assertTrue($result2 > 0);
-        $this->assertTrue($result3 > 0);
-        $this->assertTrue($result4 > 0);
-        $this->assertTrue($result5 > 0);
-        $this->assertEquals(0, $result6);
-        $this->assertTrue($result7 > 0);
-        $this->assertTrue($result8 > 0);
-        $this->assertTrue($result9 > 0);
-        $this->assertTrue($result10 > 0);
-        $this->assertTrue($result11 > 0);
+        $this->assertTrue($result1);
+        $this->assertFalse($result2);
+        $this->assertFalse($result3);
+        $this->assertFalse($result4);
+        $this->assertFalse($result5);
+        $this->assertTrue($result6);
+        $this->assertFalse($result7);
+        $this->assertFalse($result8);
+        $this->assertFalse($result9);
+        $this->assertFalse($result10);
+        $this->assertFalse($result10);
+        $this->assertFalse($result11);
     }
 
     protected function tearDown()

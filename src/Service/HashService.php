@@ -2,33 +2,30 @@
 
 namespace App\Service;
 
-use Jenssegers\ImageHash\Hash;
-use Jenssegers\ImageHash\ImageHash;
-use Jenssegers\ImageHash\Implementations\AverageHash;
-use Jenssegers\ImageHash\Implementations\DifferenceHash;
-use Jenssegers\ImageHash\Implementations\PerceptualHash;
+use Imagick;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Finder\Finder;
 
 class HashService
 {
-    const HASH_IMAGE_RESIZE_AUTO = -1;
-    const HASH_IMAGE_RESIZE_DEFAULT = 1;
-    const HASH_IMAGE_RESIZE_DOUBLE = 2;
-    const HASH_IMAGE_RESIZE_QUADRUPLE = 4;
-    const HASH_IMAGE_RESIZE_OCTUPLE = 8;
-    const HASH_IMAGE_RESIZE_SEXDECUPLE = 16;
-    const HASH_IMAGE_RESIZE_DUOTRIGUPLE = 32;
-
     /** @var OutputInterface */
     private $output;
+
+    private $imageHashsEnabled = false;
 
     public function __construct(OutputInterface $output = null)
     {
         $this->output = $output;
+
+        $this->ensureImagickExtension();
     }
 
-    public function hashFile(string $filePath, $imageHash = false, $hashQuality = self::HASH_IMAGE_RESIZE_AUTO)
+    public function setOutput(OutputInterface $output)
+    {
+        $this->output = $output;
+    }
+
+    public function hashFile(string $filePath, $imageHash = false)
     {
         $this->ensureFileExists($filePath);
 
@@ -37,24 +34,19 @@ class HashService
         $hashs = [];
         $hashs['sha1'] = sha1_file($filePath);
 
-        if ($imageHash) {
+        if ($imageHash && $this->imageHashsEnabled) {
             $this->ensureSupportedImage($filePath, $imageHash);
 
-            $hashQuality = $this->fetchHashQualityByImage($filePath, $hashQuality);
+            $imagick = new Imagick($filePath);
+            $signature = $imagick->getImageSignature();
 
-            $differenceHasher = new ImageHash(new DifferenceHash(8 * $hashQuality));
-            $averageHasher = new ImageHash(new AverageHash(8 * $hashQuality));
-            $perceptualHasher = new ImageHash(new PerceptualHash(32 * $hashQuality));
-
-            $hashs['difference'] = $differenceHasher->hash($filePath)->toHex();
-            $hashs['average'] = $averageHasher->hash($filePath)->toHex();
-            $hashs['perceptual'] = $perceptualHasher->hash($filePath)->toHex();
+            $hashs['signature'] = $signature;
         }
 
         return $hashs;
     }
 
-    public function hashFiles(Finder $files, $imageHash = false, $hashQuality = self::HASH_IMAGE_RESIZE_AUTO)
+    public function hashFiles(Finder $files, $imageHash = false)
     {
         $hashs = [];
 
@@ -66,55 +58,40 @@ class HashService
 
             $filePath = $file->getRealPath();
 
+            $hashs[$filePath] = $this->hashFile($filePath, $imageHash);
+
             if ($this->output instanceof OutputInterface) {
                 if ($this->output->isVerbose()) {
-                    $this->output->writeln("Hashing file: " . $filePath . " ...");
+                    $this->output->writeln("Hashing: " . $hashs[$filePath]['sha1'] . " - " . $filePath . " ...");
                 }
             }
-
-            $hashs[$filePath] = $this->hashFile($filePath, $imageHash, $hashQuality);
         }
 
         return $hashs;
     }
 
-    public function compareFile(string $filePath, string $otherFilePath, $imageHash = false, $hashQuality = self::HASH_IMAGE_RESIZE_AUTO): int
+    public function compareFile(string $filePath, string $otherFilePath, $imageHash = false): bool
     {
-        $fileHash = $this->hashFile($filePath, $imageHash, $hashQuality);
-        $otherHash = $this->hashFile($otherFilePath, $imageHash, $hashQuality);
+        $fileHash = $this->hashFile($filePath, $imageHash);
+        $otherHash = $this->hashFile($otherFilePath, $imageHash);
 
         return $this->compareHashResults($fileHash, $otherHash);
     }
 
-    public function compareHashResults(array $hashsA, array $hashsB): int
+    public function compareHashResults(array $hashsA, array $hashsB): bool
     {
         // The same sha1 beats everything
         if ($hashsA['sha1'] === $hashsB['sha1']) {
-            return 0;
+            return true;
         }
 
-        $imageHashs = ['difference', 'average', 'perceptual'];
-
-        $compare = [];
-        foreach ($imageHashs as $imageHash) {
-            if (isset($hashsA[$imageHash]) && isset($hashsB[$imageHash])) {
-                $this->ensureHash($hashsA[$imageHash]);
-                $this->ensureHash($hashsB[$imageHash]);
-
-                $compare[$imageHash] = Hash::fromHex($hashsA[$imageHash])->distance(Hash::fromHex($hashsB[$imageHash]));
+        if (isset($hashsA['signature']) && isset($hashsB['signature'])) {
+            if ($hashsA['signature'] === $hashsB['signature']) {
+                return true;
             }
         }
 
-        if (count($compare)) {
-            if (array_sum($compare) === 0) {
-                return 0;
-            }
-
-            return (array_sum($compare) / count($compare));
-        }
-
-        // Total different as fallback
-        return 100;
+        return false;
     }
 
     private function ensureFileExists(string $filePath)
@@ -143,45 +120,10 @@ class HashService
         }
     }
 
-    private function ensureHash($hash)
+    private function ensureImagickExtension()
     {
-        if (trim($hash) === "") {
-            throw new \Exception("An empty hash was found, which is unsupported.");
-        }
-    }
-
-    private function fetchHashQualityByImage(string $filePath, int $hashQuality)
-    {
-        $this->ensureHashQuality($hashQuality);
-
-        if ($hashQuality > 0) {
-            return $hashQuality;
-        }
-
-        // -1 is AUTO
-
-        $result = getimagesize($filePath);
-
-        if ($result[0] == 0 || $result[1] == 0) {
-            throw new \Exception("The dimensions of image file: {$filePath} could not be fetched.");
-        }
-
-        $pixelcount = $result[0] * $result[1];
-
-        switch (true) {
-            case $pixelcount <= 100000: return self::HASH_IMAGE_RESIZE_DEFAULT;
-            case $pixelcount >= 100001 && $pixelcount <= 2000000: return self::HASH_IMAGE_RESIZE_DOUBLE;
-            case $pixelcount >= 2000001 && $pixelcount <= 10000000: return self::HASH_IMAGE_RESIZE_QUADRUPLE;
-            case $pixelcount >= 10000001 && $pixelcount <= 16000000: return self::HASH_IMAGE_RESIZE_OCTUPLE;
-            case $pixelcount >= 16000001 && $pixelcount <= 32000000: return self::HASH_IMAGE_RESIZE_SEXDECUPLE;
-            default: return self::HASH_IMAGE_RESIZE_DUOTRIGUPLE;
-        }
-    }
-
-    private function ensureHashQuality(int $hashQuality)
-    {
-        if ($hashQuality === 0) {
-            throw new \Exception("A image hash quality of 0 is not supported (and useless).");
+        if (extension_loaded('imagick')) {
+            $this->imageHashsEnabled = true;
         }
     }
 }

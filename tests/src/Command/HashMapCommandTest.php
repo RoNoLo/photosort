@@ -46,9 +46,7 @@ class HashMapCommandTest extends BaseTestCase
 
         foreach ($array as $filepath => $hashs) {
             $this->assertArrayHasKey('sha1', $hashs);
-            $this->assertArrayHasKey('difference', $hashs);
-            $this->assertArrayHasKey('average', $hashs);
-            $this->assertArrayHasKey('perceptual', $hashs);
+            $this->assertArrayHasKey('signature', $hashs);
         }
     }
 

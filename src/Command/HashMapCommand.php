@@ -61,6 +61,8 @@ class HashMapCommand extends Command
             ->size('> 1K')
             ->in($sourcePath);
 
+        $this->hasher->setOutput($output);
+
         $results = $this->hasher->hashFiles($finder, $imageHashs);
 
         $outputFile = $this->ensureOutputFile($outputPath, $sourcePath);
