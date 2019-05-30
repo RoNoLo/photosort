@@ -14,9 +14,10 @@ use Symfony\Component\Finder\Finder;
 
 class PhotoSortCommand extends Command
 {
-    protected static $defaultName = 'photosort:photo-sort';
-
     const IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
+    const PHOTOSORT_OUTPUT_FILENAME = 'photosort_log.json';
+
+    protected static $defaultName = 'app:photo-sort';
 
     private $filesystem;
 
@@ -334,7 +335,7 @@ class PhotoSortCommand extends Command
         ];
         $result['log'] = $this->log;
 
-        $logFile = $this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json';
+        $logFile = $this->sourcePath . DIRECTORY_SEPARATOR . self::PHOTOSORT_OUTPUT_FILENAME;
 
         $this->filesystem->dumpFile($logFile, json_encode($result, JSON_PRETTY_PRINT));
 

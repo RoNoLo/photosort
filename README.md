@@ -113,3 +113,4 @@ If after the copy the image will not be readable, the source is not deleted and 
 - https://content-blockchain.org/research/testing-different-image-hash-functions/
 - https://github.com/JohannesBuchner/imagehash
 - https://github.com/KilianB/JImageHash
+- Hash-Maps merge

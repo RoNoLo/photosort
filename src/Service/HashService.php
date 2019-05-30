@@ -69,7 +69,7 @@ class HashService
             $hashs[$filePath] = $this->hashFile($filePath, $imageHash);
 
             if ($this->output instanceof OutputInterface && $this->output->isVerbose()) {
-                $this->output->writeln("{$i}/{$fileCount}: " . $hashs[$filePath]['sha1'] . " - " . $filePath . " ...");
+                $this->output->writeln("{$i}/{$fileCount}: " . $hashs[$filePath]['sha1'] . " - " . $filePath);
             }
         }
 

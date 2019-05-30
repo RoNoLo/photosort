@@ -12,7 +12,9 @@ use Symfony\Component\Filesystem\Filesystem;
 
 class FindDuplicatesCommand extends Command
 {
-    protected static $defaultName = 'photosort:find-duplicates';
+    const FINDDUPLICATES_OUTPUT_FILENAME = 'photosort_duplicates.json';
+
+    protected static $defaultName = 'app:find-duplicates';
 
     private $filesystem;
 
@@ -56,7 +58,10 @@ class FindDuplicatesCommand extends Command
 
             $result = $this->findDuplicates($data);
 
-            $this->filesystem->dumpFile(dirname($sourceFile) . DIRECTORY_SEPARATOR . '/photosort_duplicates.json', json_encode($result, JSON_PRETTY_PRINT));
+            $this->filesystem->dumpFile(
+                dirname($sourceFile) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME,
+                json_encode($result, JSON_PRETTY_PRINT)
+            );
         } catch (\Exception $e) {
             die ("Error: " . $e->getMessage());
         }
@@ -64,42 +69,57 @@ class FindDuplicatesCommand extends Command
 
     private function findDuplicates($data)
     {
-        $found = [];
-        $files = array_keys($data);
-        $fileCount = count($files);
+        $sha1 = [];
+        $signatures = [];
 
-        $results = [];
-        for ($i = 0; $i < $fileCount; $i++) {
-            if ($i + 1 > $fileCount) {
-                break;
+        // First collecting all files per hash
+        foreach ($data as $file => $hashs) {
+            if (isset($hashs['sha1']) && !empty($hashs['sha1'])) {
+                $sha1[$hashs['sha1']][] = $file;
             }
-
-            $tmp = [];
-            $tmp[] = $files[$i];
-
-
-            for ($j = $i + 1; $j < $fileCount; $j++) {
-                if (in_array($files[$i], $found)) {
-                    continue;
-                }
-                $result = $this->hasher->compareHashResults($data[$files[$i]], $data[$files[$j]]);
-
-                if ($this->output->isVerbose()) {
-                    $this->output->writeln("Checking file: " . $files[$i] . " vs. " . $files[$j] . " result is: " . ($result ? "same" : "different"));
-                }
-
-                if ($result) {
-                    $tmp[] = $files[$j];
-                    $found[] = $files[$j];
-                }
-            }
-
-            if (count($tmp) > 1) {
-                $results[] = $tmp;
+            if (isset($hashs['signature']) && !empty($hashs['signature'])) {
+                $signatures[$hashs['signature']][] = $file;
             }
         }
 
-        return $results;
+        // Now we remove all unique images
+        foreach ($sha1 as $hash => $files) {
+            if (count($files) <= 1) {
+                unset($sha1[$hash]);
+            }
+        }
+
+        foreach ($signatures as $hash => $files) {
+            if (count($files) <= 1) {
+                unset($signatures[$hash]);
+            }
+        }
+
+        // Time to merge the results
+        $duplicates = array_values($sha1);
+
+        if (count($signatures)) {
+            $duplicatesSignature = array_values($signatures);
+
+            foreach ($duplicates as $i => $files) {
+                foreach ($duplicatesSignature as $j => $items) {
+                    $diff = array_diff($files, $items);
+
+                    if (count($diff) != count($files)) {
+                        $duplicates[$i] = array_merge($files, $items);
+                        unset($duplicatesSignature[$j]);
+                    }
+                }
+            }
+
+            $duplicates = array_merge($duplicates, $duplicatesSignature);
+        }
+
+        foreach ($duplicates as $i => $files) {
+            $duplicates[$i] = array_unique($files);
+        }
+
+        return $duplicates;
     }
 
     private function ensureSourceExists(?string $source)

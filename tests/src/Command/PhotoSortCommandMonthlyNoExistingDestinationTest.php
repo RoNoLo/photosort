@@ -22,21 +22,20 @@ class PhotoSortCommandMonthlyNoExistingDestinationTest extends BaseTestCase
 
         parent::setUp();
 
-        $tmpPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp';
-        $destinationPath = $tmpPath . DIRECTORY_SEPARATOR . 'destination';
+        $destinationPath = $this->testDestinationPath . DIRECTORY_SEPARATOR . 'destination';
         if (!$this->filesystem->exists($destinationPath)) {
             $this->filesystem->mkdir($destinationPath);
         }
 
-        $this->sourcePath = realpath($tmpPath . DIRECTORY_SEPARATOR . 'source');
-        $this->destinationPath = realpath($tmpPath . DIRECTORY_SEPARATOR . 'destination');
+        $this->sourcePath = realpath($this->testDestinationPath . DIRECTORY_SEPARATOR . 'source');
+        $this->destinationPath = realpath($this->testDestinationPath . DIRECTORY_SEPARATOR . 'destination');
     }
 
     public function testOptionsAreDefaultAndNoExistingStructure()
     {
         $this->app->add(new PhotoSortCommand(new Filesystem(), new HashService()));
 
-        $command = $this->app->find('photosort:photo-sort');
+        $command = $this->app->find('app:photo-sort');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
@@ -51,9 +50,9 @@ class PhotoSortCommandMonthlyNoExistingDestinationTest extends BaseTestCase
 
         $this->assertTrue($result);
 
-        $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json');
+        $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . PhotoSortCommand::PHOTOSORT_OUTPUT_FILENAME);
 
-        $json = file_get_contents($this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_log.json');
+        $json = file_get_contents($this->sourcePath . DIRECTORY_SEPARATOR . PhotoSortCommand::PHOTOSORT_OUTPUT_FILENAME);
         $log = json_decode($json, JSON_OBJECT_AS_ARRAY);
 
         $this->assertArrayHasKey('source', $log);
@@ -68,16 +67,5 @@ class PhotoSortCommandMonthlyNoExistingDestinationTest extends BaseTestCase
         $this->assertEquals(5, $log['stats']['identical']);
         $this->assertEquals(0, $log['stats']['errors']);
         $this->assertEquals(0, $log['stats']['skipped']);
-    }
-
-    protected function tearDown()
-    {
-        if ($this->filesystem->exists($this->sourcePath)) {
-            $this->filesystem->remove($this->sourcePath);
-        }
-
-        if ($this->filesystem->exists($this->destinationPath)) {
-            $this->filesystem->remove($this->destinationPath);
-        }
     }
 }

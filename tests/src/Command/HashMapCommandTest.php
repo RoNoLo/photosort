@@ -20,15 +20,15 @@ class HashMapCommandTest extends BaseTestCase
 
         parent::setUp();
 
-        $this->sourcePath = realpath(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . 'source');
-        $this->outputPath = realpath(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp');
+        $this->sourcePath = realpath($this->testDestinationPath . DIRECTORY_SEPARATOR . 'source');
+        $this->outputPath = realpath($this->testDestinationPath);
     }
 
     public function testHasingImagesRecursive()
     {
         $this->app->add(new HashMapCommand(new Filesystem(), new HashService()));
 
-        $command = $this->app->find('photosort:hash-map');
+        $command = $this->app->find('app:hash-map');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
@@ -37,9 +37,9 @@ class HashMapCommandTest extends BaseTestCase
             '--image-hashs' => true
         ]);
 
-        $this->assertFileExists($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
+        $this->assertFileExists($this->outputPath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME);
 
-        $json = file_get_contents($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
+        $json = file_get_contents($this->outputPath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME);
         $array = json_decode($json, JSON_PRETTY_PRINT);
 
         $this->assertEquals(20, count($array));
@@ -47,17 +47,6 @@ class HashMapCommandTest extends BaseTestCase
         foreach ($array as $filepath => $hashs) {
             $this->assertArrayHasKey('sha1', $hashs);
             $this->assertArrayHasKey('signature', $hashs);
-        }
-    }
-
-    protected function tearDown()
-    {
-        if ($this->filesystem->exists($this->sourcePath)) {
-            $this->filesystem->remove($this->sourcePath);
-        }
-
-        if ($this->filesystem->exists($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json')) {
-            $this->filesystem->remove($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
         }
     }
 }

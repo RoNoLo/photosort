@@ -14,9 +14,10 @@ use Symfony\Component\Finder\Finder;
 
 class HashMapCommand extends Command
 {
-    const IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
+    const HASHMAP_IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
+    const HASHMAP_OUTPUT_FILENAME = 'photosort_hashmap.json';
 
-    protected static $defaultName = 'photosort:hash-map';
+    protected static $defaultName = 'app:hash-map';
 
     private $filesystem;
 
@@ -33,11 +34,11 @@ class HashMapCommand extends Command
     protected function configure()
     {
         $this->setDescription('Creates an hashmap on every file in a path.');
-        $this->setHelp('Creates a hashmap file, which may help to find duplicate files quicker. By default only files bigger than 1K are processed');
+        $this->setHelp('Creates a hashmap file, which may help to find duplicate files quicker. By default only files bigger than 1K are processed.');
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addOption('output-path', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
-        $this->addOption('image-hashs', 'i', InputOption::VALUE_OPTIONAL, 'Will also create image content hashes', true);
+        $this->addOption('image-hashs', 'i', InputOption::VALUE_OPTIONAL, 'Will also create image content hashes (this requires imagick extension installed)', true);
     }
 
     /**
@@ -57,7 +58,7 @@ class HashMapCommand extends Command
 
         $finder = Finder::create()
             ->files()
-            ->name(self::IMAGES)
+            ->name(self::HASHMAP_IMAGES)
             ->size('> 1K')
             ->sortByName()
             ->in($sourcePath);
@@ -78,14 +79,14 @@ class HashMapCommand extends Command
     private function ensureOutputFile(?string $outputPath, $sourcePath)
     {
         if (is_null($outputPath)) {
-            return $sourcePath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+            return $sourcePath . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
         }
 
         if ($this->filesystem->exists($outputPath)) {
             $realpath = realpath($outputPath);
 
             if (is_dir($realpath)) {
-                return $realpath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+                return $realpath . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
             }
 
             return $realpath;
@@ -99,10 +100,10 @@ class HashMapCommand extends Command
         }
 
         if (empty($pathInfo['filename']) && !empty($pathInfo['dirname']) && $pathInfo['dirname'] !== ".") {
-            return $pathInfo['dirname'] . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+            return $pathInfo['dirname'] . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
         }
 
-        return '.' . DIRECTORY_SEPARATOR . 'photosort_hashmap.json';
+        return '.' . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
     }
 
     private function ensureSourcePath(?string $sourcePath)
