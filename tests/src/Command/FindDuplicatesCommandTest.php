@@ -25,7 +25,7 @@ class FindDuplicatesCommandTest extends BaseTestCase
         $sourceFile = $this->resourcesPath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME;
         $duplicatesFile = $this->resourcesPath . DIRECTORY_SEPARATOR . FindDuplicatesCommand::FINDDUPLICATES_OUTPUT_FILENAME;
 
-        $this->app->add(new FindDuplicatesCommand(new Filesystem(), new HashService()));
+        $this->app->add(new FindDuplicatesCommand($this->filesystem, new HashService()));
         $command = $this->app->find('app:find-duplicates');
         $commandTester = new CommandTester($command);
         $commandTester->execute([

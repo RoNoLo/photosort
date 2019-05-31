@@ -24,7 +24,7 @@ class FindDuplicatesCommandFileOnlyTest extends BaseTestCase
 
     public function testFindDuplicates()
     {
-        $this->app->add(new HashMapCommand(new Filesystem(), new HashService()));
+        $this->app->add(new HashMapCommand($this->filesystem, new HashService()));
         $command = $this->app->find('app:hash-map');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
@@ -34,7 +34,7 @@ class FindDuplicatesCommandFileOnlyTest extends BaseTestCase
             '--image-hashs' => true
         ]);
 
-        $this->app->add(new FindDuplicatesCommand(new Filesystem(), new HashService()));
+        $this->app->add(new FindDuplicatesCommand($this->filesystem, new HashService()));
         $command = $this->app->find('app:find-duplicates');
         $commandTester = new CommandTester($command);
         $commandTester->execute([

@@ -3,32 +3,27 @@
 namespace App\Command;
 
 use App\Service\HashService;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 
-class FindDuplicatesCommand extends Command
+class FindDuplicatesCommand extends AppBaseCommand
 {
     const FINDDUPLICATES_OUTPUT_FILENAME = 'photosort_duplicates.json';
 
     protected static $defaultName = 'app:find-duplicates';
 
-    private $filesystem;
-
     private $hasher;
 
-    /** @var OutputInterface */
-    private $output;
+    private $sourceFile;
 
     public function __construct(Filesystem $filesystem, HashService $hashService)
     {
-        $this->filesystem = $filesystem;
         $this->hasher = $hashService;
 
-        parent::__construct();
+        parent::__construct($filesystem);
     }
 
     protected function configure()
@@ -47,24 +42,17 @@ class FindDuplicatesCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->output = $output;
+        $this->persistInput($input, $output);
+        $this->persistArgs($input);
 
-        try {
-            $sourceFile = $input->getArgument('source-file');
+        $data = json_decode(file_get_contents(realpath($this->sourceFile)), JSON_PRETTY_PRINT);
 
-            $this->ensureSourceExists($sourceFile);
+        $result = $this->findDuplicates($data);
 
-            $data = json_decode(file_get_contents(realpath($sourceFile)), JSON_PRETTY_PRINT);
-
-            $result = $this->findDuplicates($data);
-
-            $this->filesystem->dumpFile(
-                dirname($sourceFile) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME,
-                json_encode($result, JSON_PRETTY_PRINT)
-            );
-        } catch (\Exception $e) {
-            die ("Error: " . $e->getMessage());
-        }
+        $this->filesystem->dumpFile(
+            dirname($this->sourceFile) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME,
+            json_encode($result, JSON_PRETTY_PRINT)
+        );
     }
 
     private function findDuplicates($data)
@@ -127,5 +115,12 @@ class FindDuplicatesCommand extends Command
         if (!$this->filesystem->exists($source)) {
             throw new IOException("Source hashmap file does not exists.");
         }
+    }
+
+    private function persistArgs(InputInterface $input)
+    {
+        $this->sourceFile = $input->getArgument('source-file');
+
+        $this->ensureSourceExists($this->sourceFile);
     }
 }

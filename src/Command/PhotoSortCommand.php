@@ -3,7 +3,6 @@
 namespace App\Command;
 
 use App\Service\HashService;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -12,21 +11,20 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
-class PhotoSortCommand extends Command
+class PhotoSortCommand extends AppBaseCommand
 {
     const IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
     const PHOTOSORT_OUTPUT_FILENAME = 'photosort_log.json';
 
     protected static $defaultName = 'app:photo-sort';
 
-    private $filesystem;
-
     private $sourcePath;
 
     private $destinationPath;
 
-    /** @var OutputInterface */
-    private $output;
+    private $notRenameDuplicates;
+
+    private $monthly;
 
     /** @var \SplFileInfo */
     private $currentFile;
@@ -48,10 +46,9 @@ class PhotoSortCommand extends Command
 
     public function __construct(Filesystem $filesystem, HashService $hashService)
     {
-        $this->filesystem = $filesystem;
         $this->hasher = $hashService;
 
-        parent::__construct();
+        parent::__construct($filesystem);
     }
 
     public function __destruct()
@@ -78,33 +75,13 @@ class PhotoSortCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->output = $output;
+        $this->persistInput($input, $output);
+        $this->persistArgs($input);
 
-        $this->sourcePath = $sourcePath = $input->getArgument('source-path');
-        $this->destinationPath = $destinationPath = $input->getArgument('destination-path');
-        $notRenameDuplicates = !!$input->getOption('not-rename-and-copy-duplicates');
-        $monthly = !!$input->getOption('monthly');
-
-        $this->ensurePathExists($sourcePath);
-        $this->ensurePathExists($destinationPath);
-
-        $sourcePath = realpath($sourcePath);
-        $destinationPath = realpath($destinationPath);
-
-        $finder = new Finder();
-
-        $finder->files()->name(self::IMAGES)->in($sourcePath);
-
-        if (!$finder->hasResults()) {
-            if ($output->isVerbose()) {
-                $output->writeln("Source directory had no image files to process.");
-            }
-
-            return 0;
-        }
+        $files = $this->findFiles();
 
         /** @var \SplFileInfo $file */
-        foreach ($finder as $file) {
+        foreach ($files as $file) {
             if ($file->isDir()) {
                 continue;
             }
@@ -120,7 +97,7 @@ class PhotoSortCommand extends Command
                 $output->writeln("Image: " . $file->getBasename());
             }
 
-            $imageDestinationFilePath = $this->buildDestinationPath($destinationPath, $file, $monthly);
+            $imageDestinationFilePath = $this->buildDestinationPath($file);
 
             if ($output->isVeryVerbose()) {
                 $output->writeln("Destination Path: " . $imageDestinationFilePath);
@@ -128,7 +105,7 @@ class PhotoSortCommand extends Command
 
             $imageSourceFilePath = $file->getRealPath();
 
-            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath, $notRenameDuplicates);
+            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath);
 
             $this->total++;
         }
@@ -136,7 +113,7 @@ class PhotoSortCommand extends Command
         $this->writeLogfile();
     }
 
-    private function buildDestinationPath(string $destination, \SplFileInfo $file, $monthly = false)
+    private function buildDestinationPath(\SplFileInfo $file)
     {
         $photoDate = $file->getMTime();
 
@@ -144,14 +121,14 @@ class PhotoSortCommand extends Command
         $yearMonth = date("ym", $photoDate);
         $yearMonthDay = date("ymd", $photoDate);
 
-        if ($monthly) {
-            $destinationPath = $destination . DIRECTORY_SEPARATOR .
+        if ($this->monthly) {
+            $destinationPath = $this->destinationPath . DIRECTORY_SEPARATOR .
               $year . DIRECTORY_SEPARATOR .
               $yearMonth . DIRECTORY_SEPARATOR .
               $file->getBasename()
             ;
         } else {
-            $destinationPath = $destination . DIRECTORY_SEPARATOR .
+            $destinationPath = $this->destinationPath . DIRECTORY_SEPARATOR .
                 $year . DIRECTORY_SEPARATOR .
                 $yearMonth . DIRECTORY_SEPARATOR .
                 $yearMonthDay . DIRECTORY_SEPARATOR .
@@ -162,18 +139,7 @@ class PhotoSortCommand extends Command
         return $destinationPath;
     }
 
-    private function ensurePathExists(?string $directoryPath)
-    {
-        if (!$this->filesystem->exists($directoryPath)) {
-            throw new IOException("The directory `{$directoryPath}` does not exists.");
-        }
-
-        if (!is_dir($directoryPath) || !is_readable($directoryPath)) {
-            throw new IOException("The directory `{$directoryPath}` is not readable.");
-        }
-    }
-
-    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath, $notRenameDuplicates = false)
+    private function copyFile(string $imageSourceFilePath, string $imageDestinationFilePath)
     {
         if ($this->output->isVeryVerbose()) {
             $this->output->writeln("Try to copy from: " . $imageSourceFilePath . " to: ". $imageDestinationFilePath);
@@ -194,7 +160,7 @@ class PhotoSortCommand extends Command
             }
 
             // So there is a identical named file and no other file in the destination path is identical
-            if ($notRenameDuplicates) {
+            if ($this->notRenameDuplicates) {
                 $this->log[$this->currentFile->getPathname()] = 'skipped because a file with identical name, but different content, was already at destination ' . $imageDestinationFilePath;
                 $this->skipped++;
 
@@ -211,7 +177,6 @@ class PhotoSortCommand extends Command
             if ($this->output->isDebug()) {
                 $this->output->writeln($this->currentFile->getPathname() . " renamed to " . $imageDestinationFilePath);
             }
-
         }
 
         // Copy the file
@@ -344,5 +309,47 @@ class PhotoSortCommand extends Command
         }
 
         $this->log = [];
+    }
+
+    private function persistArgs(InputInterface $input)
+    {
+        $sourcePath = $input->getArgument('source-path');
+        $destinationPath = $input->getArgument('destination-path');
+        $this->notRenameDuplicates = !!$input->getOption('not-rename-and-copy-duplicates');
+        $this->monthly = !!$input->getOption('monthly');
+
+        $this->ensurePathExists($sourcePath);
+        $this->ensurePathExists($destinationPath);
+
+        $this->sourcePath = realpath($sourcePath);
+        $this->destinationPath = realpath($destinationPath);
+    }
+
+    private function ensurePathExists(?string $directoryPath)
+    {
+        if (!$this->filesystem->exists($directoryPath)) {
+            throw new IOException("The directory `{$directoryPath}` does not exists.");
+        }
+
+        if (!is_dir($directoryPath) || !is_readable($directoryPath)) {
+            throw new IOException("The directory `{$directoryPath}` is not readable.");
+        }
+    }
+
+    private function findFiles()
+    {
+        $finder = new Finder();
+
+        $finder->files()->name(self::IMAGES)->in($this->sourcePath);
+
+        if (!$finder->hasResults()) {
+            if ($this->output->isVerbose()) {
+                $this->output->writeln("Source directory had no image files to process.");
+            }
+
+            throw new IOException("The source directory had no files to process.");
+        }
+
+        return $finder;
     }
 }

@@ -32,7 +32,7 @@ class PhotoSortCommandNoExistingDestinationTest extends BaseTestCase
 
     public function testOptionsAreDefaultAndNoExistingStructure()
     {
-        $this->app->add(new PhotoSortCommand(new Filesystem(), new HashService()));
+        $this->app->add(new PhotoSortCommand($this->filesystem, new HashService()));
 
         $command = $this->app->find('app:photo-sort');
         $commandTester = new CommandTester($command);

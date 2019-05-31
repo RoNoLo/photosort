@@ -3,7 +3,6 @@
 namespace App\Command;
 
 use App\Service\HashService;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -12,23 +11,27 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
-class HashMapCommand extends Command
+class HashMapCommand extends AppBaseCommand
 {
     const HASHMAP_IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
     const HASHMAP_OUTPUT_FILENAME = 'photosort_hashmap.json';
 
     protected static $defaultName = 'app:hash-map';
 
-    private $filesystem;
-
     private $hasher;
+
+    // Args
+    private $sourcePath;
+
+    private $outputPath;
+
+    private $imageHashs;
 
     public function __construct(Filesystem $filesystem, HashService $hashService)
     {
-        $this->filesystem = $filesystem;
         $this->hasher = $hashService;
 
-        parent::__construct();
+        parent::__construct($filesystem);
     }
 
     protected function configure()
@@ -49,25 +52,21 @@ class HashMapCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $sourcePath = $input->getArgument('source-path');
-        $outputPath = $input->getOption('output-path');
-        $imageHashs = !!$input->getOption('image-hashs');
-
-        $this->ensureSourcePath($sourcePath);
-        $this->ensureOutputPath($outputPath);
+        $this->persistInput($input, $output);
+        $this->persistArgs($input);
 
         $finder = Finder::create()
             ->files()
             ->name(self::HASHMAP_IMAGES)
             ->size('> 1K')
             ->sortByName()
-            ->in($sourcePath);
+            ->in($this->sourcePath);
 
         $this->hasher->setOutput($output);
 
-        $results = $this->hasher->hashFiles($finder, $imageHashs);
+        $results = $this->hasher->hashFiles($finder, $this->imageHashs);
 
-        $outputFile = $this->ensureOutputFile($outputPath, $sourcePath);
+        $outputFile = $this->ensureOutputFile();
 
         $this->filesystem->dumpFile($outputFile, json_encode($results, JSON_PRETTY_PRINT));
 
@@ -76,14 +75,14 @@ class HashMapCommand extends Command
         }
     }
 
-    private function ensureOutputFile(?string $outputPath, $sourcePath)
+    private function ensureOutputFile()
     {
-        if (is_null($outputPath)) {
-            return $sourcePath . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
+        if (is_null($this->outputPath)) {
+            return $this->sourcePath . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
         }
 
-        if ($this->filesystem->exists($outputPath)) {
-            $realpath = realpath($outputPath);
+        if ($this->filesystem->exists($this->outputPath)) {
+            $realpath = realpath($this->outputPath);
 
             if (is_dir($realpath)) {
                 return $realpath . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
@@ -92,11 +91,11 @@ class HashMapCommand extends Command
             return $realpath;
         }
 
-        $pathInfo = pathinfo($outputPath);
+        $pathInfo = pathinfo($this->outputPath);
 
         // Is it just a filename?
-        if ($pathInfo['basename'] == basename($outputPath) && $pathInfo['dirname'] == "." && $pathInfo['extension'] == 'json') {
-            return '.' . DIRECTORY_SEPARATOR . $outputPath;
+        if ($pathInfo['basename'] == basename($this->outputPath) && $pathInfo['dirname'] == "." && $pathInfo['extension'] == 'json') {
+            return '.' . DIRECTORY_SEPARATOR . $this->outputPath;
         }
 
         if (empty($pathInfo['filename']) && !empty($pathInfo['dirname']) && $pathInfo['dirname'] !== ".") {
@@ -106,24 +105,34 @@ class HashMapCommand extends Command
         return '.' . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
     }
 
-    private function ensureSourcePath(?string $sourcePath)
+    private function persistArgs(InputInterface $input)
     {
-        if (!$this->filesystem->exists($sourcePath)) {
+        $this->sourcePath = $input->getArgument('source-path');
+        $this->outputPath = $input->getOption('output-path');
+        $this->imageHashs = !!$input->getOption('image-hashs');
+
+        $this->ensureSourcePath();
+        $this->ensureOutputPath();
+    }
+
+    private function ensureSourcePath()
+    {
+        if (!$this->filesystem->exists($this->sourcePath)) {
             throw new IOException("The source directory does not exist or is not accessible.");
         }
     }
 
-    private function ensureOutputPath(?string $outputPath = null)
+    private function ensureOutputPath()
     {
-        if (is_null($outputPath)) {
+        if (is_null($this->outputPath)) {
             return;
         }
 
-        if ($this->filesystem->exists($outputPath) && is_dir($outputPath)) {
+        if ($this->filesystem->exists($this->outputPath) && is_dir($this->outputPath)) {
             return;
         }
 
-        if (!$this->filesystem->exists($outputPath) && $this->filesystem->exists(dirname($outputPath)) && is_dir(dirname($outputPath))) {
+        if (!$this->filesystem->exists($this->outputPath) && $this->filesystem->exists(dirname($this->outputPath)) && is_dir(dirname($this->outputPath))) {
             return;
         }
 

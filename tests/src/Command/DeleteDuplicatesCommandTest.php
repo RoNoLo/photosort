@@ -2,13 +2,14 @@
 
 namespace App\Tests\Command;
 
+use App\Command\DeleteDuplicatesCommand;
 use App\Command\HashMapCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Filesystem\Filesystem;
 
-class HashMapCommandTest extends BaseTestCase
+class DeleteDuplicatesCommandTest extends BaseTestCase
 {
     private $sourcePath;
 
@@ -16,7 +17,7 @@ class HashMapCommandTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = __DIR__ . '/../../fixtures/hash-map.yaml';
+        $this->fixtureFile = __DIR__ . '/../../fixtures/delete-duplicates.yaml';
 
         parent::setUp();
 
@@ -24,9 +25,9 @@ class HashMapCommandTest extends BaseTestCase
         $this->outputPath = realpath($this->testDestinationPath);
     }
 
-    public function testHasingImagesRecursive()
+    public function testDeleteDuplicates()
     {
-        $this->app->add(new HashMapCommand($this->filesystem, new HashService()));
+        $this->app->add(new DeleteDuplicatesCommand());
 
         $command = $this->app->find('app:hash-map');
         $commandTester = new CommandTester($command);
