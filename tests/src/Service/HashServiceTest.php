@@ -33,10 +33,12 @@ class HashServiceTest extends BaseTestCase
 
         foreach ($hashs as $filePath => $list) {
             $this->assertArrayHasKey('sha1', $list);
-            $this->assertArrayHasKey('signature', $list);
-
             $this->assertNotEmpty($list['sha1']);
-            $this->assertNotEmpty($list['signature']);
+
+            if (extension_loaded('imagick')) {
+                $this->assertArrayHasKey('signature', $list);
+                $this->assertNotEmpty($list['signature']);
+            }
         }
     }
 
@@ -49,10 +51,12 @@ class HashServiceTest extends BaseTestCase
         $hashs = $hasher->hashFile($filePath, true);
 
         $this->assertArrayHasKey('sha1', $hashs);
-        $this->assertArrayHasKey('signature', $hashs);
-
         $this->assertNotEmpty($hashs['sha1']);
-        $this->assertNotEmpty($hashs['signature']);
+
+        if (extension_loaded('imagick')) {
+            $this->assertArrayHasKey('signature', $hashs);
+            $this->assertNotEmpty($hashs['signature']);
+        }
     }
 
     public function testCheckForSimilarPictures()
