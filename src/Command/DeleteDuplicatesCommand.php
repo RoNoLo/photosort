@@ -2,36 +2,26 @@
 
 namespace App\Command;
 
-use App\Service\HashService;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Filesystem\Exception\IOException;
-use Symfony\Component\Filesystem\Filesystem;
 
-class DeleteDuplicatesCommand extends Command
+class DeleteDuplicatesCommand extends AppBaseCommand
 {
+    const DELETEDUPLICATES_OUTPUT_FILENAME = 'photosort_deletes.json';
+
     protected static $defaultName = 'app:delete-duplicates';
 
-    private $filesystem;
+    private $sourceFile;
 
-    /** @var OutputInterface */
-    private $output;
+    private $recycleBinPath;
 
-    /** @var InputInterface */
-    private $input;
+    private $alwaysKeepFirstInList = false;
 
     private $log;
-
-    public function __construct(Filesystem $filesystem)
-    {
-        $this->filesystem = $filesystem;
-
-        parent::__construct();
-    }
 
     protected function configure()
     {
@@ -40,6 +30,7 @@ class DeleteDuplicatesCommand extends Command
 
         $this->addArgument('source-file', InputArgument::REQUIRED, 'Duplicates JSON file.');
         $this->addOption('recycle-bin-path', 'b', InputOption::VALUE_OPTIONAL, 'Instead of deleting the files will be moved to that recycle directory', null);
+        $this->addOption('always-keep-first-in-list', 'y', InputOption::VALUE_OPTIONAL, 'This will always keep the first file and do not ask for input (WARNING!)', false);
     }
 
     /**
@@ -50,24 +41,14 @@ class DeleteDuplicatesCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->output = $output;
-        $this->input = $input;
+        $this->persistInput($input, $output);
+        $this->persistArgs($input);
 
-        try {
-            $sourceFile = $input->getArgument('source-file');
-            $recycleBinPath = $input->getOption('recycle-bin-path');
+        $data = $this->readJsonFile($this->sourceFile);
 
-            $this->ensureDuplicatesSourceExists($sourceFile);
-            $this->ensureRecycleBin($recycleBinPath);
+        $result = $this->findDuplicates($data);
 
-            $data = json_decode(file_get_contents(realpath($sourceFile)), JSON_PRETTY_PRINT);
-
-            $result = $this->findDuplicates($data, $recycleBinPath);
-
-            $this->filesystem->dumpFile(dirname($sourceFile) . DIRECTORY_SEPARATOR . '/photosort_duplicates.json', json_encode($result, JSON_PRETTY_PRINT));
-        } catch (\Exception $e) {
-            die ("Error: " . $e->getMessage());
-        }
+        $this->writeJsonFile(dirname($this->sourceFile) . DIRECTORY_SEPARATOR . self::DELETEDUPLICATES_OUTPUT_FILENAME, $result);
     }
 
     private function findDuplicates($data, $recycleBinPath = null)
@@ -75,55 +56,125 @@ class DeleteDuplicatesCommand extends Command
         $helper = $this->getHelper('question');
 
         foreach ($data as $files) {
-            $choices = [];
-            foreach ($files as $i => $file) {
-                $choices[$i] = $file;
+            if ($this->alwaysKeepFirstInList) {
+                $fileToKeep = array_shift($files);
+            } else {
+                $choices = [];
+                foreach ($files as $i => $file) {
+                    $choices[$i] = $file;
+                }
+                $question = new ChoiceQuestion('Which image file do you want to KEEP?', $choices, '0');
+                $question->setErrorMessage("File number %s is invalid");
+
+                $fileToKeep = $helper->ask($this->input, $this->output, $question);
+
+                if (is_null($fileToKeep) || empty($fileToKeep)) {
+                    throw new \Exception("Something went wrong, with the input");
+                }
+
+                $files = array_diff($files, [$fileToKeep]);
             }
-            $question = new ChoiceQuestion('Which image file do you want to KEEP?', $choices, '0');
-            $question->setErrorMessage("File number %s is invalid");
 
-            $fileKeep = $helper->ask($this->input, $this->output, $question);
-
-            $this->deleteFilesExcept($files, $fileKeep, $recycleBinPath);
-        }
-    }
-
-    private function deleteFilesExcept($files, $fileKeep, $recycleBinPath)
-    {
-        foreach ($files as $i => $file) {
-            if ($file == $fileKeep) {
-                continue;
-            }
+            $this->log['keeped'][] = $fileToKeep;
 
             if ($this->output->isVerbose()) {
-                $this->output->writeln("Deleteing file: " . $file);
+                $this->output->writeln("File to keep: " . $fileToKeep);
             }
 
-            $this->delete($file);
+            $this->deleteFiles($files);
         }
     }
 
-    private function delete($file)
+    private function deleteFiles($files)
     {
+        if ($this->output->isVeryVerbose()) {
+            foreach ($files as $file) {
+                $this->output->writeln("Deleting: " . $file);
+            }
+        }
+
+        if ($this->recycleBinPath) {
+            $this->moveFilesToRecycleBin($files);
+
+            return;
+        }
+
+        foreach ($files as $file) {
+            $this->log['deleted'][] = $file;
         // $this->filesystem->remove($file);
-        $this->output->writeln("Delete");
+        }
     }
 
-    private function ensureDuplicatesSourceExists(?string $source)
+    private function persistArgs(InputInterface $input)
     {
-        if (!$this->filesystem->exists($source)) {
+        $this->sourceFile = $input->getArgument('source-file');
+        $this->recycleBinPath = $input->getOption('recycle-bin-path');
+        $this->alwaysKeepFirstInList = $input->getOption('aöways-keep-first-in-list');
+
+        $this->ensureDuplicatesSourceExists();
+        $this->ensureRecycleBin();
+    }
+
+    private function ensureDuplicatesSourceExists()
+    {
+        if (!$this->filesystem->exists($this->sourceFile)) {
             throw new IOException("Source duplicates file does not exists.");
         }
     }
 
-    private function ensureRecycleBin(?string $recycleBinPath = null)
+    private function ensureRecycleBin()
     {
-        if (is_null($recycleBinPath)) {
+        if (is_null($this->recycleBinPath)) {
             return;
         }
 
-        if (!$this->filesystem->exists($recycleBinPath)) {
+        if (!$this->filesystem->exists($this->recycleBinPath)) {
             throw new IOException("The recycle bin path has to exist.");
         }
+    }
+
+    private function moveFilesToRecycleBin(array $files)
+    {
+        $date = date('Ymd');
+
+        foreach ($files as $file) {
+            $filename = basename($file);
+
+            $recycleFilePath = $this->recycleBinPath . DIRECTORY_SEPARATOR . $date . DIRECTORY_SEPARATOR . $filename;
+
+            if ($this->filesystem->exists($recycleFilePath)) {
+                $recycleFilePath = $this->renameDestinationFile($recycleFilePath);
+            }
+
+            $this->filesystem->copy($file, $recycleFilePath);
+            // $this->filesystem->remove($file);
+
+            $this->log['moved'][] = [
+                'from' => $file,
+                'to' => $recycleFilePath
+            ];
+        }
+    }
+
+    private function renameDestinationFile(string $filePath)
+    {
+        $breaker = 10000;
+
+        $destinationFilePath = null;
+        do {
+            $pathinfo = pathinfo($filePath);
+
+            $filename = $pathinfo['filename'] . '_' . (10000 - $breaker + 1);
+
+            $destinationFilePath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $filename . '.' . $pathinfo['extension'];
+
+            if (!$this->filesystem->exists($destinationFilePath)) {
+                return $destinationFilePath;
+            }
+
+            $breaker--;
+        } while ($breaker);
+
+        throw new IOException("It was not possible to find a free rename filename in 100 tries for file: `{$filePath}`.");
     }
 }

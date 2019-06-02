@@ -34,4 +34,16 @@ class AppBaseCommand extends Command
         $this->input = $input;
         $this->output = $output;
     }
+
+    protected function readJsonFile($filePath)
+    {
+        $data = json_decode(file_get_contents(realpath($filePath)), JSON_PRETTY_PRINT);
+
+        return $data;
+    }
+
+    protected function writeJsonFile($filepath, $data)
+    {
+        $this->filesystem->dumpFile($filepath, json_encode($data, JSON_PRETTY_PRINT));
+    }
 }

@@ -6,7 +6,6 @@ use App\Command\HashMapCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Filesystem\Filesystem;
 
 class HashMapCommandTest extends BaseTestCase
 {

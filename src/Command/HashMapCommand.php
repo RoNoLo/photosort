@@ -68,7 +68,7 @@ class HashMapCommand extends AppBaseCommand
 
         $outputFile = $this->ensureOutputFile();
 
-        $this->filesystem->dumpFile($outputFile, json_encode($results, JSON_PRETTY_PRINT));
+        $this->writeJsonFile($outputFile, $results);
 
         if ($output->isVerbose()) {
             $output->writeln('Result: ' . $outputFile);

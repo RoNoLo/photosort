@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Tests;
+namespace App\Tests\Service;
 
+use App\Command\HashMapCommand;
 use App\Service\HashService;
+use App\Tests\BaseTestCase;
 use Symfony\Component\Finder\Finder;
 
 class HashServiceTest extends BaseTestCase
@@ -23,7 +25,10 @@ class HashServiceTest extends BaseTestCase
 
     public function testCreatingHashsOfPath()
     {
-        $finder = Finder::create()->files()->name(['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'])->in($this->sourcePath);
+        $finder = Finder::create()
+            ->files()
+            ->name(['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'])
+            ->in($this->sourcePath);
 
         $hasher = new HashService();
 
@@ -148,7 +153,7 @@ class HashServiceTest extends BaseTestCase
             $this->filesystem->remove($this->sourcePath);
         }
 
-        if ($this->filesystem->exists($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json')) {
+        if ($this->filesystem->exists($this->outputPath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME)) {
             $this->filesystem->remove($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
         }
     }

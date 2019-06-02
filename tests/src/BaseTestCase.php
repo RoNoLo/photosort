@@ -2,10 +2,9 @@
 
 namespace App\Tests;
 
-use App\Service\FixtureService;
+use App\Tests\Service\FixtureService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Application;
-use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 
 class BaseTestCase extends TestCase
@@ -31,7 +30,7 @@ class BaseTestCase extends TestCase
         if (!is_null($this->fixtureFile) && $this->filesystem->exists($this->fixtureFile)) {
             $fixtureService = new FixtureService($this->filesystem);
 
-            $randomPart = substr(sha1(random_bytes(10)), 0, 10);
+            $randomPart = substr(sha1(\random_bytes(10)), 0, 10);
 
             $resourcePath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'resources';
             $testDestinationPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . $randomPart;
@@ -47,6 +46,14 @@ class BaseTestCase extends TestCase
     protected function normalizePath($path)
     {
         return str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+    }
+
+    protected function readDataFromJsonFile($filepath)
+    {
+        $json = file_get_contents($filepath);
+        $data = json_decode($json, JSON_PRETTY_PRINT);
+
+        return $data;
     }
 
     protected function tearDown()

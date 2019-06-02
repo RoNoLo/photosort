@@ -45,14 +45,11 @@ class FindDuplicatesCommand extends AppBaseCommand
         $this->persistInput($input, $output);
         $this->persistArgs($input);
 
-        $data = json_decode(file_get_contents(realpath($this->sourceFile)), JSON_PRETTY_PRINT);
+        $data = $this->readJsonFile($this->sourceFile);
 
         $result = $this->findDuplicates($data);
 
-        $this->filesystem->dumpFile(
-            dirname($this->sourceFile) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME,
-            json_encode($result, JSON_PRETTY_PRINT)
-        );
+        $this->writeJsonFile(dirname($this->sourceFile) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME, $result);
     }
 
     private function findDuplicates($data)

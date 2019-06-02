@@ -1,14 +1,12 @@
 <?php
 
-namespace RoNoLo\PhotoSort\Command;
+namespace App\Tests\Command;
 
-use App\Command\HashMapCommand;
 use App\Command\PhotoSortCommand;
-use App\Service\DirectoryStructureCheckerService;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
+use App\Tests\Service\DirectoryStructureCheckerService;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Filesystem\Filesystem;
 
 class PhotoSortCommandDuplicateButNotIdenticalNoRenameTest extends BaseTestCase
 {

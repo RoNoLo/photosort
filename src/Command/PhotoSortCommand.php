@@ -302,7 +302,7 @@ class PhotoSortCommand extends AppBaseCommand
 
         $logFile = $this->sourcePath . DIRECTORY_SEPARATOR . self::PHOTOSORT_OUTPUT_FILENAME;
 
-        $this->filesystem->dumpFile($logFile, json_encode($result, JSON_PRETTY_PRINT));
+        $this->writeJsonFile($logFile, $result);
 
         if ($this->output->isVerbose()) {
             $this->output->writeln('Result: ' . $logFile);

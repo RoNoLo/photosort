@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Tests\Service;
 
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;

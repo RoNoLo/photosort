@@ -27,10 +27,17 @@ fixtures:
     source/horst/tommy/image_008.jpg: null
   image_010.jpg:
     source/horst/tommy/image_010.jpg: null
+    source/horst/tommy/image_013.jpg: null
+    source/horst/image_013.jpg: null
+    source/image_013.jpg: null
   image_011.jpg:
     source/horst/tommy/image_011.jpg: null
+    source/image_011.jpg: null
+    source/image_011a.jpg: null
+    source/image_0114.jpg: null
   image_013.jpg:
     source/image_013.jpg: null
+    source/horst/image_013.jpg: null
   image_014.jpg:
     source/image_014.jpg: null
 

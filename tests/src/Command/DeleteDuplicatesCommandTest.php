@@ -3,11 +3,11 @@
 namespace App\Tests\Command;
 
 use App\Command\DeleteDuplicatesCommand;
+use App\Command\FindDuplicatesCommand;
 use App\Command\HashMapCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Filesystem\Filesystem;
 
 class DeleteDuplicatesCommandTest extends BaseTestCase
 {
@@ -27,7 +27,12 @@ class DeleteDuplicatesCommandTest extends BaseTestCase
 
     public function testDeleteDuplicates()
     {
-        $this->app->add(new DeleteDuplicatesCommand());
+        $sourceFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME;
+        $duplicatesFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . FindDuplicatesCommand::FINDDUPLICATES_OUTPUT_FILENAME;
+
+        $this->app->add(new HashMapCommand($this->filesystem, new HashService()));
+        $this->app->add(new FindDuplicatesCommand($this->filesystem, new HashService()));
+        $this->app->add(new DeleteDuplicatesCommand($this->filesystem));
 
         $command = $this->app->find('app:hash-map');
         $commandTester = new CommandTester($command);
@@ -38,18 +43,21 @@ class DeleteDuplicatesCommandTest extends BaseTestCase
             '--image-hashs' => true
         ]);
 
-        $this->assertFileExists($this->outputPath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME);
+        $command = $this->app->find('app:find-duplicates');
+        $commandTester = new CommandTester($command);
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'source-file' => $sourceFile,
+        ]);
 
-        $json = file_get_contents($this->outputPath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME);
-        $array = json_decode($json, JSON_PRETTY_PRINT);
+        $command = $this->app->find('app:delete-duplicates');
+        $commandTester = new CommandTester($command);
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'source-file' => $duplicatesFile,
+            '--always-keep-first-in-list' => true,
+        ]);
 
-        $this->assertEquals(20, count($array));
-
-        foreach ($array as $filepath => $hashs) {
-            $this->assertArrayHasKey('sha1', $hashs);
-            if (extension_loaded('imagick')) {
-                $this->assertArrayHasKey('signature', $hashs);
-            }
-        }
+        $foo = 1;
     }
 }

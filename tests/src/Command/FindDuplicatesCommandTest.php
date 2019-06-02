@@ -1,13 +1,12 @@
 <?php
 
-namespace RoNoLo\PhotoSort\Command;
+namespace App\Tests\Command;
 
 use App\Command\FindDuplicatesCommand;
 use App\Command\HashMapCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Filesystem\Filesystem;
 
 class FindDuplicatesCommandTest extends BaseTestCase
 {

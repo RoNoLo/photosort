@@ -1,14 +1,12 @@
 <?php
 
-namespace RoNoLo\PhotoSort\Command;
+namespace App\Tests\Command;
 
-use App\Command\HashMapCommand;
 use App\Command\PhotoSortCommand;
-use App\Service\DirectoryStructureCheckerService;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
+use App\Tests\Service\DirectoryStructureCheckerService;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Filesystem\Filesystem;
 
 class PhotoSortCommandIdenticalsRenamedTest extends BaseTestCase
 {
@@ -66,16 +64,5 @@ class PhotoSortCommandIdenticalsRenamedTest extends BaseTestCase
         $this->assertEquals(4, $log['stats']['identical']);
         $this->assertEquals(0, $log['stats']['errors']);
         $this->assertEquals(0, $log['stats']['skipped']);
-    }
-
-    protected function tearDown()
-    {
-        if ($this->filesystem->exists($this->sourcePath)) {
-            $this->filesystem->remove($this->sourcePath);
-        }
-
-        if ($this->filesystem->exists($this->destinationPath)) {
-            $this->filesystem->remove($this->destinationPath);
-        }
     }
 }

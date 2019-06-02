@@ -1,13 +1,12 @@
 <?php
 
-namespace RoNoLo\PhotoSort\Command;
+namespace App\Tests\Command;
 
 use App\Command\FindDuplicatesCommand;
 use App\Command\HashMapCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Filesystem\Filesystem;
 
 class FindDuplicatesCommandFileOnlyTest extends BaseTestCase
 {
@@ -42,9 +41,9 @@ class FindDuplicatesCommandFileOnlyTest extends BaseTestCase
             'source-file' => $this->sourcePath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME,
         ]);
 
-        $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_duplicates.json');
+        $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . FindDuplicatesCommand::FINDDUPLICATES_OUTPUT_FILENAME);
 
-        $json = file_get_contents($this->sourcePath . DIRECTORY_SEPARATOR . 'photosort_duplicates.json');
+        $json = file_get_contents($this->sourcePath . DIRECTORY_SEPARATOR . FindDuplicatesCommand::FINDDUPLICATES_OUTPUT_FILENAME);
         $result = json_decode($json, JSON_OBJECT_AS_ARRAY);
 
         $this->assertCount(6, $result);
