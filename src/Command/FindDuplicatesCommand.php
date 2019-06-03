@@ -17,7 +17,7 @@ class FindDuplicatesCommand extends AppBaseCommand
 
     private $hasher;
 
-    private $sourceFile;
+    private $sources;
 
     public function __construct(Filesystem $filesystem, HashService $hashService)
     {
@@ -31,7 +31,7 @@ class FindDuplicatesCommand extends AppBaseCommand
         $this->setDescription('Analyses the hashmap.');
         $this->setHelp('Analyses and filters the hashmap based on options');
 
-        $this->addArgument('source-file', InputArgument::REQUIRED, 'Hashmap');
+        $this->addArgument('sources', InputArgument::IS_ARRAY, 'Path to the hash files created with the app:hash command (separated by space).');
     }
 
     /**
@@ -45,11 +45,11 @@ class FindDuplicatesCommand extends AppBaseCommand
         $this->persistInput($input, $output);
         $this->persistArgs($input);
 
-        $data = $this->readJsonFile($this->sourceFile);
+        $data = $this->readJsonFiles();
 
         $result = $this->findDuplicates($data);
 
-        $this->writeJsonFile(dirname($this->sourceFile) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME, $result);
+        $this->writeJsonFile(dirname($this->sources) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME, $result);
     }
 
     private function findDuplicates($data)
@@ -107,17 +107,31 @@ class FindDuplicatesCommand extends AppBaseCommand
         return $duplicates;
     }
 
-    private function ensureSourceExists(?string $source)
+    private function persistArgs(InputInterface $input)
     {
-        if (!$this->filesystem->exists($source)) {
-            throw new IOException("Source hashmap file does not exists.");
+        $this->sources = $input->getArgument('sources');
+
+        $this->ensureSourcesExists($this->sources);
+    }
+
+    private function ensureSourcesExists(array $sources)
+    {
+        foreach ($sources as $source) {
+            if (!$this->filesystem->exists($source)) {
+                throw new IOException("Source hash file `{$source}` does not exists.");
+            }
         }
     }
 
-    private function persistArgs(InputInterface $input)
+    private function readJsonFiles()
     {
-        $this->sourceFile = $input->getArgument('source-file');
+        $data = [];
 
-        $this->ensureSourceExists($this->sourceFile);
+        foreach ($this->sources as $source) {
+            $tmp = $this->readJsonFile($source);
+            $data = array_merge($data, $tmp);
+        }
+
+        return $data;
     }
 }

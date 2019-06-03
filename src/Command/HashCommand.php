@@ -11,12 +11,12 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
-class HashMapCommand extends AppBaseCommand
+class HashCommand extends AppBaseCommand
 {
     const HASHMAP_IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
     const HASHMAP_OUTPUT_FILENAME = 'photosort_hashmap.json';
 
-    protected static $defaultName = 'app:hash-map';
+    protected static $defaultName = 'app:hash';
 
     private $hasher;
 
@@ -39,9 +39,8 @@ class HashMapCommand extends AppBaseCommand
         $this->setDescription('Creates an hashmap on every file in a path.');
         $this->setHelp('Creates a hashmap file, which may help to find duplicate files quicker. By default only files bigger than 1K are processed.');
 
-        $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
-        $this->addOption('output-path', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
-        $this->addOption('image-hashs', 'i', InputOption::VALUE_OPTIONAL, 'Will also create image content hashes (this requires imagick extension installed)', true);
+        $this->addArgument('source', InputArgument::REQUIRED, 'Source root path');
+        $this->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
     }
 
     /**
@@ -107,9 +106,8 @@ class HashMapCommand extends AppBaseCommand
 
     private function persistArgs(InputInterface $input)
     {
-        $this->sourcePath = $input->getArgument('source-path');
-        $this->outputPath = $input->getOption('output-path');
-        $this->imageHashs = !!$input->getOption('image-hashs');
+        $this->sourcePath = $input->getArgument('source');
+        $this->outputPath = $input->getOption('output');
 
         $this->ensureSourcePath();
         $this->ensureOutputPath();

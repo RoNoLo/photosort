@@ -7,7 +7,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Filesystem;
 
-class AppBaseCommand extends Command
+abstract class AppBaseCommand extends Command
 {
     /** @var Filesystem */
     protected $filesystem;
