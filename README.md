@@ -2,13 +2,41 @@
 
 ## Abstract
 
-This is a console PHP script, which can sort images from a source directory into a destination directory-structure.
-All photos will be sorted by date, thus each photo is sorted into a directory which represents only one day of the year.
-All photos of that day will be stored there.
+A small set of PHP console commands to sort, find duplicates and delete duplicate images.
 
-The structure looks like this:
+You need PHP 7.2 and optional, but strongly recommand the PHP extension imagick.
 
+All commands are build as symfony console commands and therefore come with a nice interface,
+help and output system.
+
+### Quickstart
+
+Get started by typing:
+
+```bash
+php composer.phar install
+php bin/console
 ```
+
+### Photo Sort
+
+Help:
+
+```bash
+php bin/console help app:sort
+```
+
+Basic usage:
+
+```bash
+php bin/console app:sort -- /source/path/to/images/to/sort /root/destination/path
+```
+
+This command will crawl recursively the source path for images and will sort them by date
+into the destination path. All images are put into sub-folders, which are created if needed.
+The structure will look like this: 
+
+```bash
 2019
  +-- 1903
       +-- 190301
@@ -22,9 +50,24 @@ The structure looks like this:
  +-- 1904
       +-- 190404
            +-- PICTURE_004.jpg      
-       
 ```
-All photo names will be kept the same.
+
+Alternative, there is an option key, which will sort only by months.
+
+```bash
+2019
+ +-- 1903
+      +-- IMG_FOO_111.jpg
+      +-- IMG_FOO_112.jpg
+      +-- IMG_FOO_113.jpg
+      +-- IMG_FOO_114.jpg
+      +-- IMG_FOO_115.jpg
+      +-- IMG_FOO_116.jpg
+ +-- 1904
+      +-- PICTURE_004.jpg      
+```
+
+All photo names will be kept the same, except duplicate names are found (see below).
 
 I recommend to run a tool like [jhead](http://www.sentex.net/~mwandel/jhead/) with jhead -ft **/*.jpg prior to the execution of the script. 
 It will change the file changedate to the EXIF recording date, which may be more accurate than the filedate, which can be modified by filesystem operations.

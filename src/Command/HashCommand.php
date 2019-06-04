@@ -11,12 +11,12 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
-class HashMapCommand extends AppBaseCommand
+class HashCommand extends AppBaseCommand
 {
     const HASHMAP_IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
     const HASHMAP_OUTPUT_FILENAME = 'photosort_hashmap.json';
 
-    protected static $defaultName = 'app:hash-map';
+    protected static $defaultName = 'app:hash';
 
     private $hasher;
 
@@ -39,9 +39,8 @@ class HashMapCommand extends AppBaseCommand
         $this->setDescription('Creates a message digest JSON for every file in a given path recursively.');
         $this->setHelp('Creates a message digest JSON file, which may help to find duplicate files quicker. By default only files bigger than 1K are processed. When the PHP extension imagick is found image signatures are added to find duplicated images based on the pixel-stream.');
 
-        $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
-        $this->addOption('output-path', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
-        $this->addOption('image-signatures', 'i', InputOption::VALUE_OPTIONAL, 'Will also create image content hashes (this requires imagick extension installed)', true);
+        $this->addArgument('source', InputArgument::REQUIRED, 'Source root path');
+        $this->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
     }
 
     /**
@@ -123,13 +122,11 @@ class HashMapCommand extends AppBaseCommand
 
     private function persistArgs(InputInterface $input)
     {
-        $this->sourcePath = $input->getArgument('source-path');
-        $this->outputPath = $input->getOption('output-path');
-        $this->imageSignature = !!$input->getOption('image-signatures');
+        $this->sourcePath = $input->getArgument('source');
+        $this->outputPath = $input->getOption('output');
 
         $this->ensureSourcePath();
         $this->ensureOutputPath();
-        $this->ensureImageSignatures();
     }
 
     private function ensureSourcePath()
@@ -154,12 +151,5 @@ class HashMapCommand extends AppBaseCommand
         }
 
         throw new IOException("The output directory does not exist or is not accessible.");
-    }
-
-    private function ensureImageSignatures()
-    {
-        if ($this->imageSignature && !extension_loaded('imagick')) {
-            throw new \Exception("Image signatures are only supported when the php extension `imagick` is loaded.");
-        }
     }
 }

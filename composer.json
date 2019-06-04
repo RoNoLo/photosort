@@ -27,6 +27,7 @@
     "symfony/polyfill-php56": "*"
   },
   "require": {
+    "php": ">= 7.2",
     "psr/log": "1.0.2",
     "ext-ctype": "*",
     "ext-iconv": "*",
