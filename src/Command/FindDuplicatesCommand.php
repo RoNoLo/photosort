@@ -7,7 +7,6 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
-use Symfony\Component\Filesystem\Filesystem;
 
 class FindDuplicatesCommand extends AppBaseCommand
 {
@@ -15,15 +14,17 @@ class FindDuplicatesCommand extends AppBaseCommand
 
     protected static $defaultName = 'app:find-duplicates';
 
+    /** @var HashService */
     private $hasher;
 
+    /** @var string[] */
     private $sources;
 
-    public function __construct(Filesystem $filesystem, HashService $hashService)
+    public function __construct(HashService $hashService)
     {
         $this->hasher = $hashService;
 
-        parent::__construct($filesystem);
+        parent::__construct();
     }
 
     protected function configure()
@@ -31,12 +32,13 @@ class FindDuplicatesCommand extends AppBaseCommand
         $this->setDescription('Analyses the hashmap.');
         $this->setHelp('Analyses and filters the hashmap based on options');
 
-        $this->addArgument('sources', InputArgument::IS_ARRAY, 'Path to the hash files created with the app:hash command (separated by space).');
+        $this->addArgument('sources', InputArgument::IS_ARRAY | InputArgument::REQUIRED, 'Path to the hash files created with the app:hash command (separated by space).');
     }
 
     /**
      * @param InputInterface $input
      * @param OutputInterface $output
+     *
      * @return int|void|null
      * @throws \Exception
      */

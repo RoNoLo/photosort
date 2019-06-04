@@ -63,7 +63,7 @@ class PhotoSortCommand extends AppBaseCommand
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
-        $this->addOption('not-rename-and-copy-duplicates', 'n', InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', false);
+        $this->addOption('not-rename-and-copy-duplicates', 'x', InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', false);
         $this->addOption('monthly', 'm', InputOption::VALUE_OPTIONAL, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images', false);
         $this->addOption('hashs-file', 'f', InputOption::VALUE_OPTIONAL, 'To find duplicates quicker, a file with precalculated hashs can be used.', false);
     }
