@@ -7,7 +7,7 @@ use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class HashMapCommandTest extends BaseTestCase
+class HashCommandTest extends BaseTestCase
 {
     private $sourcePath;
 
@@ -25,7 +25,7 @@ class HashMapCommandTest extends BaseTestCase
 
     public function testHasingImagesRecursive()
     {
-        $this->app->add(new HashMapCommand($this->filesystem, new HashService()));
+        $this->app->add(new HashCommand($this->filesystem, new HashService()));
 
         $command = $this->app->find('app:hash-map');
         $commandTester = new CommandTester($command);
