@@ -8,21 +8,11 @@ use Symfony\Component\Finder\Finder;
 
 class HashService
 {
-    /** @var OutputInterface */
-    private $output;
-
     private $imageHashsEnabled = false;
 
-    public function __construct(OutputInterface $output = null)
+    public function __construct()
     {
-        $this->output = $output;
-
         $this->ensureImagickExtension();
-    }
-
-    public function setOutput(OutputInterface $output)
-    {
-        $this->output = $output;
     }
 
     public function hashFile(string $filePath, $imageHash = false)
@@ -50,12 +40,6 @@ class HashService
     {
         $hashs = [];
 
-        $fileCount = $files->count();
-
-        if ($this->output instanceof OutputInterface && $this->output->isVerbose()) {
-            $this->output->writeln("Found {$fileCount} files to hash.");
-        }
-
         /** @var \SplFileInfo $file */
         $i = 0;
         foreach ($files as $file) {
@@ -67,10 +51,6 @@ class HashService
             $filePath = $file->getRealPath();
 
             $hashs[$filePath] = $this->hashFile($filePath, $imageHash);
-
-            if ($this->output instanceof OutputInterface && $this->output->isVerbose()) {
-                $this->output->writeln("{$i}/{$fileCount}: " . $hashs[$filePath]['sha1'] . " - " . $filePath);
-            }
         }
 
         return $hashs;

@@ -25,7 +25,7 @@ class HashMapCommand extends AppBaseCommand
 
     private $outputPath;
 
-    private $imageHashs;
+    private $imageSignature;
 
     public function __construct(Filesystem $filesystem, HashService $hashService)
     {
@@ -36,12 +36,12 @@ class HashMapCommand extends AppBaseCommand
 
     protected function configure()
     {
-        $this->setDescription('Creates an hashmap on every file in a path.');
-        $this->setHelp('Creates a hashmap file, which may help to find duplicate files quicker. By default only files bigger than 1K are processed.');
+        $this->setDescription('Creates a message digest JSON for every file in a given path recursively.');
+        $this->setHelp('Creates a message digest JSON file, which may help to find duplicate files quicker. By default only files bigger than 1K are processed. When the PHP extension imagick is found image signatures are added to find duplicated images based on the pixel-stream.');
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addOption('output-path', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
-        $this->addOption('image-hashs', 'i', InputOption::VALUE_OPTIONAL, 'Will also create image content hashes (this requires imagick extension installed)', true);
+        $this->addOption('image-signatures', 'i', InputOption::VALUE_OPTIONAL, 'Will also create image content hashes (this requires imagick extension installed)', true);
     }
 
     /**
@@ -62,13 +62,29 @@ class HashMapCommand extends AppBaseCommand
             ->sortByName()
             ->in($this->sourcePath);
 
-        $this->hasher->setOutput($output);
+        $fileCount = "";
+        if ($output->isVeryVerbose()) {
+            $fileCount = $finder->count();
 
-        $results = $this->hasher->hashFiles($finder, $this->imageHashs);
+            $output->writeln($fileCount . " files found.");
+        }
+
+        $hashs = [];
+        $i = 0;
+        /** @var \SplFileInfo $file */
+        foreach ($finder as $file) {
+            $filePath = $file->getRealPath();
+            $result = $this->hasher->hashFile($this->imageSignature);
+            $hashs[$filePath] = $result;
+
+            if ($output->isVerbose()) {
+                $output->writeln("MD: " . $result['sha1'] . " - " . $filePath);
+            }
+        }
 
         $outputFile = $this->ensureOutputFile();
 
-        $this->writeJsonFile($outputFile, $results);
+        $this->writeJsonFile($outputFile, $hashs);
 
         if ($output->isVerbose()) {
             $output->writeln('Result: ' . $outputFile);
@@ -109,10 +125,11 @@ class HashMapCommand extends AppBaseCommand
     {
         $this->sourcePath = $input->getArgument('source-path');
         $this->outputPath = $input->getOption('output-path');
-        $this->imageHashs = !!$input->getOption('image-hashs');
+        $this->imageSignature = !!$input->getOption('image-signatures');
 
         $this->ensureSourcePath();
         $this->ensureOutputPath();
+        $this->ensureImageSignatures();
     }
 
     private function ensureSourcePath()
@@ -137,5 +154,12 @@ class HashMapCommand extends AppBaseCommand
         }
 
         throw new IOException("The output directory does not exist or is not accessible.");
+    }
+
+    private function ensureImageSignatures()
+    {
+        if ($this->imageSignature && !extension_loaded('imagick')) {
+            throw new \Exception("Image signatures are only supported when the php extension `imagick` is loaded.");
+        }
     }
 }
