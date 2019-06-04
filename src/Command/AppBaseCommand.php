@@ -6,6 +6,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 abstract class AppBaseCommand extends Command
 {
@@ -18,11 +19,24 @@ abstract class AppBaseCommand extends Command
     /** @var OutputInterface */
     protected $output;
 
-    public function __construct(Filesystem $filesystem)
+    /** @var Stopwatch */
+    protected $stopwatch;
+
+    public function __construct()
     {
-        $this->filesystem = $filesystem;
+        $this->filesystem = new Filesystem();
+        $this->stopwatch = new Stopwatch();
 
         parent::__construct();
+
+        $this->stopwatch->start(static::getName());
+    }
+
+    public function __destruct()
+    {
+        if ($this->output && $this->output->isVerbose()) {
+            $this->output->writeln((string) $this->stopwatch->stop(static::getName()));
+        }
     }
 
     /**

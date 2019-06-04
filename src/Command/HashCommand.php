@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Service\HashService;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -10,6 +11,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 class HashCommand extends AppBaseCommand
 {
@@ -18,34 +20,35 @@ class HashCommand extends AppBaseCommand
 
     protected static $defaultName = 'app:hash';
 
+    /** @var HashService */
     private $hasher;
 
-    // Args
+    /** @var string */
     private $sourcePath;
 
-    private $outputPath;
+    /** @var string */
+    private $outputFile;
 
-    private $imageSignature;
-
-    public function __construct(Filesystem $filesystem, HashService $hashService)
+    public function __construct(HashService $hashService)
     {
         $this->hasher = $hashService;
 
-        parent::__construct($filesystem);
+        parent::__construct();
     }
 
     protected function configure()
     {
         $this->setDescription('Creates a message digest JSON for every file in a given path recursively.');
-        $this->setHelp('Creates a message digest JSON file, which may help to find duplicate files quicker. By default only files bigger than 1K are processed. When the PHP extension imagick is found image signatures are added to find duplicated images based on the pixel-stream.');
+        $this->setHelp("Creates a message digest JSON file, which may help to find duplicate files quicker.\nWhen the PHP extension imagick is found image signatures are added to find duplicated images based on the pixel-stream.");
 
-        $this->addArgument('source', InputArgument::REQUIRED, 'Source root path');
-        $this->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
+        $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
+        $this->addOption('output-file', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
     }
 
     /**
      * @param InputInterface $input
      * @param OutputInterface $output
+     *
      * @return int|void|null
      * @throws \Exception
      */
@@ -57,28 +60,43 @@ class HashCommand extends AppBaseCommand
         $finder = Finder::create()
             ->files()
             ->name(self::HASHMAP_IMAGES)
-            ->size('> 1K')
-            ->sortByName()
-            ->in($this->sourcePath);
+            ->in($this->sourcePath)
+        ;
 
-        $fileCount = "";
+        $fileCount = $finder->count();
         if ($output->isVeryVerbose()) {
-            $fileCount = $finder->count();
-
             $output->writeln($fileCount . " files found.");
         }
 
+        if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
+            $progressBar = new ProgressBar($output, $fileCount);
+            $progressBar->start();
+        }
+
         $hashs = [];
-        $i = 0;
+        $i = 1;
         /** @var \SplFileInfo $file */
         foreach ($finder as $file) {
             $filePath = $file->getRealPath();
-            $result = $this->hasher->hashFile($this->imageSignature);
+            $result = $this->hasher->hashFile($filePath, true);
             $hashs[$filePath] = $result;
 
-            if ($output->isVerbose()) {
-                $output->writeln("MD: " . $result['sha1'] . " - " . $filePath);
+            $countStatistic = "";
+            if ($output->isVeryVerbose()) {
+                $countStatistic = " (" . $i++ . "/" . $fileCount . ")";
             }
+
+            if ($output->isVerbose()) {
+                $output->writeln($result['sha1'] . " - " . $filePath . $countStatistic);
+            }
+
+            if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
+                $progressBar->advance();
+            }
+        }
+
+        if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
+            $progressBar->finish();
         }
 
         $outputFile = $this->ensureOutputFile();
@@ -92,25 +110,15 @@ class HashCommand extends AppBaseCommand
 
     private function ensureOutputFile()
     {
-        if (is_null($this->outputPath)) {
+        if (is_null($this->outputFile)) {
             return $this->sourcePath . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
         }
 
-        if ($this->filesystem->exists($this->outputPath)) {
-            $realpath = realpath($this->outputPath);
-
-            if (is_dir($realpath)) {
-                return $realpath . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
-            }
-
-            return $realpath;
-        }
-
-        $pathInfo = pathinfo($this->outputPath);
+        $pathInfo = pathinfo($this->outputFile);
 
         // Is it just a filename?
-        if ($pathInfo['basename'] == basename($this->outputPath) && $pathInfo['dirname'] == "." && $pathInfo['extension'] == 'json') {
-            return '.' . DIRECTORY_SEPARATOR . $this->outputPath;
+        if ($pathInfo['basename'] == basename($this->outputFile) && $pathInfo['dirname'] == "." && $pathInfo['extension'] == 'json') {
+            return '.' . DIRECTORY_SEPARATOR . $this->outputFile;
         }
 
         if (empty($pathInfo['filename']) && !empty($pathInfo['dirname']) && $pathInfo['dirname'] !== ".") {
@@ -122,34 +130,34 @@ class HashCommand extends AppBaseCommand
 
     private function persistArgs(InputInterface $input)
     {
-        $this->sourcePath = $input->getArgument('source');
-        $this->outputPath = $input->getOption('output');
+        $this->sourcePath = $input->getArgument('source-path');
+        $this->outputFile = $input->getOption('output-file');
 
-        $this->ensureSourcePath();
-        $this->ensureOutputPath();
+        $this->ensureSource();
+        $this->ensureOutput();
     }
 
-    private function ensureSourcePath()
+    private function ensureSource()
     {
         if (!$this->filesystem->exists($this->sourcePath)) {
-            throw new IOException("The source directory does not exist or is not accessible.");
+            throw new IOException("The source-path directory does not exist or is not accessible.");
         }
     }
 
-    private function ensureOutputPath()
+    private function ensureOutput()
     {
-        if (is_null($this->outputPath)) {
+        if (is_null($this->outputFile)) {
             return;
         }
 
-        if ($this->filesystem->exists($this->outputPath) && is_dir($this->outputPath)) {
+        if ($this->filesystem->exists($this->outputFile) && is_dir($this->outputFile)) {
+            throw new IOException("The --output-file option should be an file-path.");
+        }
+
+        if (!$this->filesystem->exists($this->outputFile) && $this->filesystem->exists(dirname($this->outputFile)) && is_dir(dirname($this->outputFile))) {
             return;
         }
 
-        if (!$this->filesystem->exists($this->outputPath) && $this->filesystem->exists(dirname($this->outputPath)) && is_dir(dirname($this->outputPath))) {
-            return;
-        }
-
-        throw new IOException("The output directory does not exist or is not accessible.");
+        throw new IOException("The --output-file option file path does not exist or is not accessible.");
     }
 }

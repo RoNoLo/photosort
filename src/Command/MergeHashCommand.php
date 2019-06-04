@@ -22,7 +22,7 @@ class MergeHashCommand extends AppBaseCommand
     // Args
     private $sources;
 
-    private $output;
+    private $outputPath;
 
     protected function configure()
     {
@@ -52,7 +52,7 @@ class MergeHashCommand extends AppBaseCommand
 
         $output = $this->ensureOutputFilePath();
 
-        $this->writeJsonFile()
+        // $this->writeJsonFile();
 
     }
 
