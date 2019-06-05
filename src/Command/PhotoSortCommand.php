@@ -16,7 +16,7 @@ class PhotoSortCommand extends AppBaseCommand
     const IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
     const PHOTOSORT_OUTPUT_FILENAME = 'photosort_log.json';
 
-    protected static $defaultName = 'app:photo-sort';
+    protected static $defaultName = 'app:sort';
 
     private $sourcePath;
 

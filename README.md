@@ -4,7 +4,7 @@
 
 A small set of PHP console commands to sort, find duplicates and delete duplicate images.
 
-You need PHP 7.2 and optional, but strongly recommand the PHP extension imagick.
+You need PHP 7.2 and optional, but strongly recommend, the PHP extension ```imagick```.
 
 All commands are build as symfony console commands and therefore come with a nice interface,
 help and output system.
@@ -18,7 +18,7 @@ php composer.phar install
 php bin/console
 ```
 
-### Photo Sort
+### Photo Sorting / app:sort
 
 Help:
 
@@ -34,7 +34,25 @@ php bin/console app:sort -- /source/path/to/images/to/sort /root/destination/pat
 
 This command will crawl recursively the source path for images and will sort them by date
 into the destination path. All images are put into sub-folders, which are created if needed.
-The structure will look like this: 
+
+All photo names will be kept the same, except duplicate names are found (see below).
+
+The structure will look like this. 
+
+From:
+
+```bash
+images
+   +-- IMG_FOO_111.jpg / filedate: 190301
+   +-- IMG_FOO_112.jpg / filedate: 190301
+   +-- IMG_FOO_113.jpg / filedate: 190301
+   +-- IMG_FOO_114.jpg / filedate: 190302
+   +-- IMG_FOO_115.jpg / filedate: 190302
+   +-- IMG_FOO_116.jpg / filedate: 190302
+   +-- PICTURE_004.jpg / filedate: 190404      
+```
+
+To:
 
 ```bash
 2019
@@ -52,7 +70,9 @@ The structure will look like this:
            +-- PICTURE_004.jpg      
 ```
 
-Alternative, there is an option key, which will sort only by months.
+#### Options
+
+```--monthly``` will skip the sorting by day and sort them just by month, like so: 
 
 ```bash
 2019
@@ -67,10 +87,18 @@ Alternative, there is an option key, which will sort only by months.
       +-- PICTURE_004.jpg      
 ```
 
-All photo names will be kept the same, except duplicate names are found (see below).
+```--not-rename-and-copy-duplicates``` will prevent the altering of image filenames, when a duplicate filename is found.
+This will therefore prevent the copy to the new location.
+
+```--hashs-file=/path/to/hashs/file.json``` will force the command to check every file before copy if the hash or 
+signature is already known (which means the image is already somewere) and therefore is skipped. (The hashs-file can be created with the app:hash command)  
 
 I recommend to run a tool like [jhead](http://www.sentex.net/~mwandel/jhead/) with jhead -ft **/*.jpg prior to the execution of the script. 
 It will change the file changedate to the EXIF recording date, which may be more accurate than the filedate, which can be modified by filesystem operations.
+
+
+
+
 
 ## Use
 
