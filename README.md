@@ -11,9 +11,16 @@ help and output system.
 
 ### Quickstart
 
+You need:
+- PHP 7.2
+- git 
+- composer
+
 Get started by typing:
 
 ```bash
+git clone https://github.com/RoNoLo/photosort.git
+wget https://getcomposer.org/composer.phar (or download / install the composer.phar from https://getcomposer.org/download/) 
 php composer.phar install
 php bin/console
 ```
@@ -35,9 +42,11 @@ php bin/console app:sort -- /source/path/to/images/to/sort /root/destination/pat
 This command will crawl recursively the source path for images and will sort them by date
 into the destination path. All images are put into sub-folders, which are created if needed.
 
-All photo names will be kept the same, except duplicate names are found (see below).
+All photo names will be kept the same, except duplicate names are found (see below). Also, 
+no files will be deleted from the source path. Instead the command logs into a JSON file
+what it has done (copied, skipped, identical).
 
-The structure will look like this. 
+The sorted structure will look like this. 
 
 From:
 
@@ -96,24 +105,7 @@ signature is already known (which means the image is already somewere) and there
 I recommend to run a tool like [jhead](http://www.sentex.net/~mwandel/jhead/) with jhead -ft **/*.jpg prior to the execution of the script. 
 It will change the file changedate to the EXIF recording date, which may be more accurate than the filedate, which can be modified by filesystem operations.
 
-
-
-
-
-## Use
-
-```bash
-cli/photosort.php --source /path/of/source/with/images --destination /root/of/photo/catalog
-```
-
-This will take all photos recursively from the source folder and copy/move them into the destination folder.
-The script will use the filedate to find the correct folder structure to move the image. 
-The script will create all needed folder, checks if an image already exists and if so will do a checksum (sha1) to check if the photo is the same.
-The script will check if an image already exists with another filename, if the directory already existed.
-
-Logging is done to the console.
-
-## Limitations
+#### Limitations
 
 Currently only JPEG files are supported (simple extension check via RegEx). 
 

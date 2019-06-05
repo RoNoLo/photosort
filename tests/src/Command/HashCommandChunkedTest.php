@@ -7,7 +7,7 @@ use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class HashCommandTest extends BaseTestCase
+class HashCommandChunkedTest extends BaseTestCase
 {
     private $sourcePath;
 
@@ -33,13 +33,14 @@ class HashCommandTest extends BaseTestCase
             'command' => $command->getName(),
             'source-path' => $this->sourcePath,
             '--output-file' => $this->outputFile,
+            '--chunk' => 5,
         ]);
 
         $this->assertFileExists($this->outputFile);
 
         $array = $this->readDataFromJsonFile($this->outputFile);
 
-        $this->assertEquals(20, count($array));
+        $this->assertEquals(5, count($array));
 
         foreach ($array as $filepath => $hashs) {
             $this->assertArrayHasKey('sha1', $hashs);
