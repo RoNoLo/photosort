@@ -18,7 +18,7 @@ php composer.phar install
 php bin/console
 ```
 
-### Photo Sorting / app:sort
+### Sort Command / app:sort
 
 Help:
 
@@ -117,6 +117,67 @@ Logging is done to the console.
 
 Currently only JPEG files are supported (simple extension check via RegEx). 
 
+### Hash Command / app:hash
+
+Help:
+
+```bash
+php bin/console help app:hash
+```
+
+Basic usage:
+
+```bash
+php bin/console app:hash -- /root/source/path
+```
+
+This command will crawl recursively the source path for images and will create message digests
+of each file (sha1). If the PHP extension ```imagick``` is present, additionally a pixel signature
+is also created (slower). This will help to find duplicate images were the EXIF data was modified
+(in that case the signature is the same, but the sha1 is different).  
+
+A JSON file is created and put, be default) into the source root directory. 
+The name is ```photosort_hashmap.json```. 
+
+#### Options
+
+```--output-file=/file/path/hash.json``` will force the output of the result file to be written somewhere else.
+If just a filename is given the output will be were the command is executed. When a full filepath
+is given it will be put there. The file has to end with ```.json``` to be accepted.
+
+```--chunk=<integer number>``` will force the maximum processing of files per execution. 
+This might be useful, if the processing is generally slow (like for me over the LAN from a NAS)
+and the creation of a very large hash file will take it's time. That option works hand in
+hand with ```--output-file``` because it will continue a JSON file and skip all existing
+files in there. Therefore if that option is used, use always the same ```--output-file``` option. 
+
+## Limitations
+
+Currently only JPEG files are supported (simple extension check via RegEx). 
+
+### Merge Hash Command / app:hash-merge
+
+Help:
+
+```bash
+php bin/console help app:hash-merge
+```
+
+Basic usage:
+
+```bash
+php bin/console app:hash-merge -- /source1/path/hash1.json /source2/path/has2.json ...
+```
+
+This command will just merge as many message digest hash files as given via agrument list. 
+Every file should be created with the ```app:hash``` command. There are no content checks, just
+a data merge. If there are duplicated keys (aka filepaths), the later will win. 
+
+Additionally a new JSON file is created which contains a data map with sha1 to filepath and 
+if found a signature to filepath map. This can be used by the ```app:sort``` command.
+
+Two output files are created ```photosort_hashmap_merged.json``` and ```photosort_hashmap_duplicates_helper.json```. 
+
 ## Motivation
 
 I use an [Synology](https://www.synology.com) NAS, which provides Apps for mobile phones.
@@ -128,49 +189,6 @@ I thought this would be a nice exercise to improve my PowerShell skills, but I g
 That's what I did and the original solution (initial commit) works fine for me. 
 It contains only seven self written PHP files (almost pure PHP file-operations). 
 However, I'll probably update the sourcecode to libraries to have a more robust framework.
-
-## Decision Workflow
-
-Let's assume the following bash call: photosort.php --source /foo --destination /home/myimages
-
-```
-[Source image is: foo_bar.jpg with date 2019-04-03]
-   |
-<Is there a destination year directory? (like /home/myimages/2019)>
-   |       |
- (Yes?)  (No?)-> [Create directory /home/myimages/2019/1904/190403 and move file]
-   |
-<Is there a destination year/month directory? (like /home/myimages/2019/1904)>
-   |       |
- (Yes?)  (No?)-> [Create directory /home/myimages/2019/1904/190403 and move file]
-   |
-<Are there any subdirectories at /home/myimages/2019/1904?>   
-   |       |
- (Yes?)  (No?)-> [Create directory /home/myimages/2019/1904/190403 and move file]
-   |
-[Get a list of all subdirectories at /home/myimages/2019/1904]
-   |
-[Filter the list by expected date]
-   |
-<Are there still destination directory candidates like ../190403 or ../190403_1?>
-   |       |
- (Yes?)  (No?)-> [Not coded at the moment]
-   |
-[Create an SHA1 of the source image file]
-   |
-[Cycle through all destination directory candidates and do an SHA1 compare if the image is already there]
-   |
-<Was the image found?>
-   |       |
- (No?)  (Yes?)-> [Delete the source image file]
-   |
-[Create directory /home/myimages/2019/1904/190403 (if needed) and move file]
-   | 
-[End. The source file is deleted at this point and the next file is processed until source directory is empty]
-```
-
-The file moving is extra save, to check before and after the copy / move process if the image exists at the source and destination location.
-If after the copy the image will not be readable, the source is not deleted and a console log message is printed.
 
 ## Possible Improvements 
 

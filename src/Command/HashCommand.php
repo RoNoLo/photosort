@@ -3,15 +3,14 @@
 namespace App\Command;
 
 use App\Service\HashService;
+use Symfony\Component\Console\Exception\InvalidArgumentException;
+use Symfony\Component\Console\Exception\InvalidOptionException;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Filesystem\Exception\IOException;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\Stopwatch\Stopwatch;
 
 class HashCommand extends AppBaseCommand
 {
@@ -29,6 +28,9 @@ class HashCommand extends AppBaseCommand
     /** @var string */
     private $outputFile;
 
+    /** @var null|int */
+    private $chunk;
+
     public function __construct(HashService $hashService)
     {
         $this->hasher = $hashService;
@@ -43,6 +45,7 @@ class HashCommand extends AppBaseCommand
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addOption('output-file', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
+        $this->addOption('chunk', 'c', InputOption::VALUE_OPTIONAL, 'Amount of files to process. Will continue an existing output-file', null);
     }
 
     /**
@@ -68,22 +71,39 @@ class HashCommand extends AppBaseCommand
             $output->writeln($fileCount . " files found.");
         }
 
+        if (!is_null($this->chunk)) {
+            if ($fileCount > $this->chunk) {
+                $fileCount = $this->chunk;
+            }
+        }
+
         if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
             $progressBar = new ProgressBar($output, $fileCount);
             $progressBar->start();
         }
 
+        $outputFile = $this->ensureOutputFile();
+
         $hashs = [];
+        if (!is_null($this->chunk) && $this->filesystem->exists($outputFile)) {
+            $hashs = $this->readJsonFile($outputFile);
+        }
+
         $i = 1;
         /** @var \SplFileInfo $file */
         foreach ($finder as $file) {
             $filePath = $file->getRealPath();
+
+            if (!is_null($this->chunk) && isset($hashs[$filePath])) {
+                continue;
+            }
+
             $result = $this->hasher->hashFile($filePath, true);
             $hashs[$filePath] = $result;
 
             $countStatistic = "";
             if ($output->isVeryVerbose()) {
-                $countStatistic = " (" . $i++ . "/" . $fileCount . ")";
+                $countStatistic = " (" . $i . "/" . $fileCount . ")";
             }
 
             if ($output->isVerbose()) {
@@ -93,13 +113,19 @@ class HashCommand extends AppBaseCommand
             if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
                 $progressBar->advance();
             }
+
+            if (!is_null($this->chunk)) {
+                if ($i >= $fileCount) {
+                    break;
+                }
+            }
+
+            $i++;
         }
 
         if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
             $progressBar->finish();
         }
-
-        $outputFile = $this->ensureOutputFile();
 
         $this->writeJsonFile($outputFile, $hashs);
 
@@ -121,10 +147,12 @@ class HashCommand extends AppBaseCommand
             return '.' . DIRECTORY_SEPARATOR . $this->outputFile;
         }
 
-        if (empty($pathInfo['filename']) && !empty($pathInfo['dirname']) && $pathInfo['dirname'] !== ".") {
-            return $pathInfo['dirname'] . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
+        // Is it just a directory?
+        if (!empty($pathInfo['basename']) && !empty($pathInfo['dirname']) && $pathInfo['extension'] == "json") {
+            return $this->outputFile;
         }
 
+        // Fallback
         return '.' . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
     }
 
@@ -132,15 +160,17 @@ class HashCommand extends AppBaseCommand
     {
         $this->sourcePath = $input->getArgument('source-path');
         $this->outputFile = $input->getOption('output-file');
+        $this->chunk = $input->getOption('chunk');
 
         $this->ensureSource();
         $this->ensureOutput();
+        $this->ensureChunk();
     }
 
     private function ensureSource()
     {
         if (!$this->filesystem->exists($this->sourcePath)) {
-            throw new IOException("The source-path directory does not exist or is not accessible.");
+            throw new InvalidArgumentException("The source-path directory does not exist or is not accessible.");
         }
     }
 
@@ -151,13 +181,34 @@ class HashCommand extends AppBaseCommand
         }
 
         if ($this->filesystem->exists($this->outputFile) && is_dir($this->outputFile)) {
-            throw new IOException("The --output-file option should be an file-path.");
+            throw new InvalidOptionException("The --output-file option should be an file-path.");
         }
 
         if (!$this->filesystem->exists($this->outputFile) && $this->filesystem->exists(dirname($this->outputFile)) && is_dir(dirname($this->outputFile))) {
             return;
         }
 
-        throw new IOException("The --output-file option file path does not exist or is not accessible.");
+        if ($this->filesystem->exists($this->outputFile) && is_file($this->outputFile)) {
+            return;
+        }
+
+        throw new InvalidOptionException("The --output-file option file path does not exist or is not accessible.");
+    }
+
+    private function ensureChunk()
+    {
+        if (is_null($this->chunk)) {
+            return;
+        }
+
+        if (!is_numeric($this->chunk)) {
+            throw new InvalidOptionException("The --chunk option needs to be an integer.");
+        }
+
+        $this->chunk = intval($this->chunk);
+
+        if ($this->chunk <= 0) {
+            throw new InvalidOptionException("The --chunk option needs to be a positive integer.");
+        }
     }
 }
