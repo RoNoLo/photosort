@@ -16,6 +16,7 @@ class HashCommand extends AppBaseCommand
 {
     const HASHMAP_IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
     const HASHMAP_OUTPUT_FILENAME = 'photosort_hashmap.json';
+    const HASHMAP_CHUNK_SAVE = 100;
 
     protected static $defaultName = 'app:hash';
 
@@ -27,9 +28,6 @@ class HashCommand extends AppBaseCommand
 
     /** @var string */
     private $outputFile;
-
-    /** @var null|int */
-    private $chunk;
 
     public function __construct(HashService $hashService)
     {
@@ -45,7 +43,6 @@ class HashCommand extends AppBaseCommand
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addOption('output-file', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
-        $this->addOption('chunk', 'c', InputOption::VALUE_OPTIONAL, 'Amount of files to process. Will continue an existing output-file', null);
     }
 
     /**
@@ -71,12 +68,6 @@ class HashCommand extends AppBaseCommand
             $output->writeln($fileCount . " files found.");
         }
 
-        if (!is_null($this->chunk)) {
-            if ($fileCount > $this->chunk) {
-                $fileCount = $this->chunk;
-            }
-        }
-
         if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
             $progressBar = new ProgressBar($output, $fileCount);
             $progressBar->start();
@@ -85,16 +76,21 @@ class HashCommand extends AppBaseCommand
         $outputFile = $this->ensureOutputFile();
 
         $hashs = [];
-        if (!is_null($this->chunk) && $this->filesystem->exists($outputFile)) {
+        if ($this->filesystem->exists($outputFile)) {
             $hashs = $this->readJsonFile($outputFile);
+
+            if ($output->isVerbose()) {
+                $output->writeln("Existing Hash file found at: " . $outputFile);
+            }
         }
 
-        $i = 1;
+        $i = 0;
         /** @var \SplFileInfo $file */
         foreach ($finder as $file) {
+            $i++;
             $filePath = $file->getRealPath();
 
-            if (!is_null($this->chunk) && isset($hashs[$filePath])) {
+            if (isset($hashs[$filePath])) {
                 continue;
             }
 
@@ -114,13 +110,14 @@ class HashCommand extends AppBaseCommand
                 $progressBar->advance();
             }
 
-            if (!is_null($this->chunk)) {
-                if ($i >= $fileCount) {
-                    break;
+            // This will auto save the file every 100 hashs.
+            if ($i % self::HASHMAP_CHUNK_SAVE == 0) {
+                $this->writeJsonFile($outputFile, $hashs);
+
+                if ($this->output->isVerbose()) {
+                    $this->output->writeln('Saving: ' . $outputFile);
                 }
             }
-
-            $i++;
         }
 
         if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
@@ -160,11 +157,9 @@ class HashCommand extends AppBaseCommand
     {
         $this->sourcePath = $input->getArgument('source-path');
         $this->outputFile = $input->getOption('output-file');
-        $this->chunk = $input->getOption('chunk');
 
         $this->ensureSource();
         $this->ensureOutput();
-        $this->ensureChunk();
     }
 
     private function ensureSource()
@@ -193,22 +188,5 @@ class HashCommand extends AppBaseCommand
         }
 
         throw new InvalidOptionException("The --output-file option file path does not exist or is not accessible.");
-    }
-
-    private function ensureChunk()
-    {
-        if (is_null($this->chunk)) {
-            return;
-        }
-
-        if (!is_numeric($this->chunk)) {
-            throw new InvalidOptionException("The --chunk option needs to be an integer.");
-        }
-
-        $this->chunk = intval($this->chunk);
-
-        if ($this->chunk <= 0) {
-            throw new InvalidOptionException("The --chunk option needs to be a positive integer.");
-        }
     }
 }

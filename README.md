@@ -129,19 +129,17 @@ is also created (slower). This will help to find duplicate images were the EXIF 
 (in that case the signature is the same, but the sha1 is different).  
 
 A JSON file is created and put, be default) into the source root directory. 
-The name is ```photosort_hashmap.json```. 
+The name is ```photosort_hashmap.json```.
+
+The output file will be periodically saved every 100 files. Therefore if you hash thousands
+of files you can stop the script at any time and it will continue, when a hash JSON file
+is found.  
 
 #### Options
 
 ```--output-file=/file/path/hash.json``` will force the output of the result file to be written somewhere else.
 If just a filename is given the output will be were the command is executed. When a full filepath
 is given it will be put there. The file has to end with ```.json``` to be accepted.
-
-```--chunk=<integer number>``` will force the maximum processing of files per execution. 
-This might be useful, if the processing is generally slow (like for me over the LAN from a NAS)
-and the creation of a very large hash file will take it's time. That option works hand in
-hand with ```--output-file``` because it will continue a JSON file and skip all existing
-files in there. Therefore if that option is used, use always the same ```--output-file``` option. 
 
 ## Limitations
 

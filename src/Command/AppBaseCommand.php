@@ -49,7 +49,6 @@ abstract class AppBaseCommand extends Command
         $this->output = $output;
     }
 
-
     protected function readJsonFilesAndMerge($filePaths)
     {
         $data = [];

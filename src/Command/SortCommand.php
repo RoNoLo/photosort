@@ -11,7 +11,7 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
-class PhotoSortCommand extends AppBaseCommand
+class SortCommand extends AppBaseCommand
 {
     const IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
     const PHOTOSORT_OUTPUT_FILENAME = 'photosort_log.json';
@@ -44,11 +44,11 @@ class PhotoSortCommand extends AppBaseCommand
     /** @var HashService */
     private $hasher;
 
-    public function __construct(Filesystem $filesystem, HashService $hashService)
+    public function __construct(HashService $hashService)
     {
         $this->hasher = $hashService;
 
-        parent::__construct($filesystem);
+        parent::__construct();
     }
 
     public function __destruct()

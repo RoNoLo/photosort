@@ -2,7 +2,7 @@
 
 namespace App\Tests\Command;
 
-use App\Command\PhotoSortCommand;
+use App\Command\SortCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use App\Tests\Service\DirectoryStructureCheckerService;
@@ -31,7 +31,7 @@ class PhotoSortCommandMonthlyNoExistingDestinationTest extends BaseTestCase
 
     public function testOptionsAreDefaultAndNoExistingStructure()
     {
-        $this->app->add(new PhotoSortCommand($this->filesystem, new HashService()));
+        $this->app->add(new SortCommand($this->filesystem, new HashService()));
 
         $command = $this->app->find('app:photo-sort');
         $commandTester = new CommandTester($command);
@@ -48,9 +48,9 @@ class PhotoSortCommandMonthlyNoExistingDestinationTest extends BaseTestCase
 
         $this->assertTrue($result);
 
-        $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . PhotoSortCommand::PHOTOSORT_OUTPUT_FILENAME);
+        $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . SortCommand::PHOTOSORT_OUTPUT_FILENAME);
 
-        $json = file_get_contents($this->sourcePath . DIRECTORY_SEPARATOR . PhotoSortCommand::PHOTOSORT_OUTPUT_FILENAME);
+        $json = file_get_contents($this->sourcePath . DIRECTORY_SEPARATOR . SortCommand::PHOTOSORT_OUTPUT_FILENAME);
         $log = json_decode($json, JSON_OBJECT_AS_ARRAY);
 
         $this->assertArrayHasKey('source', $log);
