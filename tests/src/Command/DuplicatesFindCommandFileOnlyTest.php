@@ -37,7 +37,7 @@ class DuplicatesFindCommandFileOnlyTest extends BaseTestCase
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
-            'source-file' => $this->sourcePath . DIRECTORY_SEPARATOR . HashCommand::HASHMAP_OUTPUT_FILENAME,
+            'sources' => [$this->sourcePath . DIRECTORY_SEPARATOR . HashCommand::HASHMAP_OUTPUT_FILENAME],
         ]);
 
         $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . DuplicatesFindCommand::FINDDUPLICATES_OUTPUT_FILENAME);

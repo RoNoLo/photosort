@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -19,18 +20,18 @@ class DuplicatesDeleteCommand extends AppBaseCommand
 
     private $recycleBinPath;
 
-    private $alwaysKeepFirstInList = false;
+    private $keepFirst = false;
 
     private $log;
 
     protected function configure()
     {
         $this->setDescription('Deletes duplicated files.');
-        $this->setHelp('Deletes duplicated files in a interactive fashion. The duplicates should come from a photosort_duplicates.json file.');
+        $this->setHelp('Deletes duplicated files in a interactive fashion. The duplicates should come from a photosort_duplicates.json file created by the app:dups command.');
 
-        $this->addArgument('source-file', InputArgument::REQUIRED, 'Duplicates JSON file.');
-        $this->addOption('recycle-bin-path', 'b', InputOption::VALUE_OPTIONAL, 'Instead of deleting the files will be moved to that recycle directory', null);
-        $this->addOption('always-keep-first-in-list', 'y', InputOption::VALUE_OPTIONAL, 'This will always keep the first file and do not ask for input (WARNING!)', false);
+        $this->addArgument('source-file', InputArgument::REQUIRED, 'Path to duplicates JSON file (created by app:dups).');
+        $this->addOption('recycle-bin', 'b', InputOption::VALUE_OPTIONAL, 'Instead of deleting the files will be moved to that recycle directory.', null);
+        $this->addOption('keep-first', 'y', InputOption::VALUE_NONE, 'This will always keep the first file and do not ask for input (WARNING!).');
     }
 
     /**
@@ -46,17 +47,17 @@ class DuplicatesDeleteCommand extends AppBaseCommand
 
         $data = $this->readJsonFile($this->sourceFile);
 
-        $result = $this->findDuplicates($data);
+        $this->findDuplicates($data);
 
-        $this->writeJsonFile(dirname($this->sourceFile) . DIRECTORY_SEPARATOR . self::DELETEDUPLICATES_OUTPUT_FILENAME, $result);
+        $this->writeJsonFile(dirname($this->sourceFile) . DIRECTORY_SEPARATOR . self::DELETEDUPLICATES_OUTPUT_FILENAME, $this->log);
     }
 
-    private function findDuplicates($data, $recycleBinPath = null)
+    private function findDuplicates($data)
     {
         $helper = $this->getHelper('question');
 
         foreach ($data as $files) {
-            if ($this->alwaysKeepFirstInList) {
+            if ($this->keepFirst) {
                 $fileToKeep = array_shift($files);
             } else {
                 $choices = [];
@@ -108,8 +109,8 @@ class DuplicatesDeleteCommand extends AppBaseCommand
     private function persistArgs(InputInterface $input)
     {
         $this->sourceFile = $input->getArgument('source-file');
-        $this->recycleBinPath = $input->getOption('recycle-bin-path');
-        $this->alwaysKeepFirstInList = $input->getOption('aöways-keep-first-in-list');
+        $this->recycleBinPath = $input->getOption('recycle-bin');
+        $this->keepFirst = !!$input->getOption('keep-first');
 
         $this->ensureDuplicatesSourceExists();
         $this->ensureRecycleBin();
@@ -129,7 +130,7 @@ class DuplicatesDeleteCommand extends AppBaseCommand
         }
 
         if (!$this->filesystem->exists($this->recycleBinPath)) {
-            throw new IOException("The recycle bin path has to exist.");
+            throw new InvalidArgumentException("The recycle bin path does not exists.");
         }
     }
 
@@ -175,6 +176,6 @@ class DuplicatesDeleteCommand extends AppBaseCommand
             $breaker--;
         } while ($breaker);
 
-        throw new IOException("It was not possible to find a free rename filename in 100 tries for file: `{$filePath}`.");
+        throw new IO0Exception("It was not possible to find a free rename filename in 100 tries for file: `{$filePath}`.");
     }
 }

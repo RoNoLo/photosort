@@ -9,7 +9,7 @@ use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class DeleteDuplicatesCommandTest extends BaseTestCase
+class DeleteDuplicatesCommandWithRecycleBinTest extends BaseTestCase
 {
     private $sourcePath;
 
