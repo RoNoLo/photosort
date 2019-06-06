@@ -2,9 +2,9 @@
 
 namespace App\Tests\Command;
 
-use App\Command\DeleteDuplicatesCommand;
-use App\Command\FindDuplicatesCommand;
-use App\Command\HashMapCommand;
+use App\Command\DuplicatesDeleteCommand;
+use App\Command\DuplicatesFindCommand;
+use App\Command\HashCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -27,14 +27,14 @@ class DeleteDuplicatesCommandTest extends BaseTestCase
 
     public function testDeleteDuplicates()
     {
-        $sourceFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME;
-        $duplicatesFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . FindDuplicatesCommand::FINDDUPLICATES_OUTPUT_FILENAME;
+        $sourceFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . HashCommand::HASHMAP_OUTPUT_FILENAME;
+        $duplicatesFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . DuplicatesFindCommand::FINDDUPLICATES_OUTPUT_FILENAME;
 
-        $this->app->add(new HashMapCommand($this->filesystem, new HashService()));
-        $this->app->add(new FindDuplicatesCommand($this->filesystem, new HashService()));
-        $this->app->add(new DeleteDuplicatesCommand($this->filesystem));
+        $this->app->add(new HashCommand(new HashService()));
+        $this->app->add(new DuplicatesFindCommand(new HashService()));
+        $this->app->add(new DuplicatesDeleteCommand());
 
-        $command = $this->app->find('app:hash-map');
+        $command = $this->app->find('app:hash');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
@@ -43,14 +43,14 @@ class DeleteDuplicatesCommandTest extends BaseTestCase
             '--image-hashs' => true
         ]);
 
-        $command = $this->app->find('app:find-duplicates');
+        $command = $this->app->find('app:dups');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
             'source-file' => $sourceFile,
         ]);
 
-        $command = $this->app->find('app:delete-duplicates');
+        $command = $this->app->find('app:delete');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),

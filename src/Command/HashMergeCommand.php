@@ -17,7 +17,7 @@ class HashMergeCommand extends AppBaseCommand
     const HASHMERGE_OUTPUT_MERGE_FILENAME = 'photosort_hashs_merged.json';
     const HASHMERGE_OUTPUT_DUPLICATES_HELPER_FILENAME = 'photosort_hashs_duplicates_helper.json';
 
-    protected static $defaultName = 'app:hash-merge';
+    protected static $defaultName = 'app:merge';
 
     // Args
     private $sources;
@@ -44,11 +44,7 @@ class HashMergeCommand extends AppBaseCommand
         $this->persistInput($input, $output);
         $this->persistArgs($input);
 
-        $data = [];
-        foreach ($this->sources as $source) {
-            $tmp = $this->readJsonFile($source);
-            $data = array_merge($data, $tmp);
-        }
+        $data = $this->readJsonFilesAndMerge($this->sources);
 
         $outputPath = $this->ensureOutputFilePath();
 

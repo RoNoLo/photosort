@@ -3,16 +3,16 @@
 namespace App\Command;
 
 use App\Service\HashService;
+use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Filesystem\Exception\IOException;
 
-class FindDuplicatesCommand extends AppBaseCommand
+class DuplicatesFindCommand extends AppBaseCommand
 {
     const FINDDUPLICATES_OUTPUT_FILENAME = 'photosort_duplicates.json';
 
-    protected static $defaultName = 'app:find-duplicates';
+    protected static $defaultName = 'app:dups';
 
     /** @var HashService */
     private $hasher;
@@ -29,8 +29,8 @@ class FindDuplicatesCommand extends AppBaseCommand
 
     protected function configure()
     {
-        $this->setDescription('Analyses the hashmap.');
-        $this->setHelp('Analyses and filters the hashmap based on options');
+        $this->setDescription('Finds duplicates in the hash map.');
+        $this->setHelp('Analyses and filters the hash map JSON file for duplicate files. Every available message digest will be used and compared.');
 
         $this->addArgument('sources', InputArgument::IS_ARRAY | InputArgument::REQUIRED, 'Path to the hash files created with the app:hash command (separated by space).');
     }
@@ -47,19 +47,49 @@ class FindDuplicatesCommand extends AppBaseCommand
         $this->persistInput($input, $output);
         $this->persistArgs($input);
 
-        $data = $this->readJsonFiles();
+        $data = $this->readJsonFilesAndMerge($this->sources);
 
         $result = $this->findDuplicates($data);
 
-        $this->writeJsonFile(dirname($this->sources) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME, $result);
+        $this->writeJsonFile(dirname($this->sources[0]) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME, $result);
     }
 
-    private function findDuplicates($data)
+    private function findDuplicates(&$data)
+    {
+        // First collecting all files per hash
+        [$sha1, $signatures] = $this->transformDataByDigests($data);
+        $this->removeUniqueFilePaths($sha1);
+        $this->removeUniqueFilePaths($signatures);
+        $duplicates = $this->mergeDigestLists($sha1, $signatures);
+
+        return $duplicates;
+    }
+
+    private function persistArgs(InputInterface $input)
+    {
+        $this->sources = $input->getArgument('sources');
+
+        $this->ensureSourcesExists($this->sources);
+    }
+
+    private function ensureSourcesExists(array $sources)
+    {
+        if (!count($this->sources)) {
+            throw new InvalidArgumentException("No source hash files were given.");
+        }
+
+        foreach ($sources as $source) {
+            if (!$this->filesystem->exists($source)) {
+                throw new InvalidArgumentException("Source hash file `{$source}` does not exists.");
+            }
+        }
+    }
+
+    private function transformDataByDigests(&$data)
     {
         $sha1 = [];
         $signatures = [];
 
-        // First collecting all files per hash
         foreach ($data as $file => $hashs) {
             if (isset($hashs['sha1']) && !empty($hashs['sha1'])) {
                 $sha1[$hashs['sha1']][] = $file;
@@ -69,19 +99,20 @@ class FindDuplicatesCommand extends AppBaseCommand
             }
         }
 
-        // Now we remove all unique images
-        foreach ($sha1 as $hash => $files) {
+        return [$sha1, $signatures];
+    }
+
+    private function removeUniqueFilePaths(&$list)
+    {
+        foreach ($list as $hash => $files) {
             if (count($files) <= 1) {
-                unset($sha1[$hash]);
+                unset($list[$hash]);
             }
         }
+    }
 
-        foreach ($signatures as $hash => $files) {
-            if (count($files) <= 1) {
-                unset($signatures[$hash]);
-            }
-        }
-
+    private function mergeDigestLists($sha1, $signatures)
+    {
         // Time to merge the results
         $duplicates = array_values($sha1);
 
@@ -107,33 +138,5 @@ class FindDuplicatesCommand extends AppBaseCommand
         }
 
         return $duplicates;
-    }
-
-    private function persistArgs(InputInterface $input)
-    {
-        $this->sources = $input->getArgument('sources');
-
-        $this->ensureSourcesExists($this->sources);
-    }
-
-    private function ensureSourcesExists(array $sources)
-    {
-        foreach ($sources as $source) {
-            if (!$this->filesystem->exists($source)) {
-                throw new IOException("Source hash file `{$source}` does not exists.");
-            }
-        }
-    }
-
-    private function readJsonFiles()
-    {
-        $data = [];
-
-        foreach ($this->sources as $source) {
-            $tmp = $this->readJsonFile($source);
-            $data = array_merge($data, $tmp);
-        }
-
-        return $data;
     }
 }

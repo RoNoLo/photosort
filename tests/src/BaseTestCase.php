@@ -21,25 +21,35 @@ class BaseTestCase extends TestCase
     /** @var string */
     protected $testDestinationPath;
 
+    /** @var string */
+    protected $resourcesPath;
+
+    /** @var string */
+    protected $fixturePath =  __DIR__ . DIRECTORY_SEPARATOR .
+        '..' . DIRECTORY_SEPARATOR .
+        'fixtures'
+    ;
+
     public function setUp()
     {
         $this->filesystem = new Filesystem();
 
         $this->app = new Application();
 
-        if (!is_null($this->fixtureFile) && $this->filesystem->exists($this->fixtureFile)) {
+        $this->fixturePath = realpath($this->fixturePath);
+
+        $randomPart = substr(sha1(\random_bytes(10)), 0, 10);
+        $this->resourcesPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'resources';
+        $testDestinationPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . $randomPart;
+
+        $this->filesystem->mkdir($testDestinationPath);
+        $this->testDestinationPath = realpath($testDestinationPath);
+
+        if (!is_null($this->fixtureFile) && $this->filesystem->exists($this->fixturePath . DIRECTORY_SEPARATOR . $this->fixtureFile)) {
             $fixtureService = new FixtureService($this->filesystem);
-
-            $randomPart = substr(sha1(\random_bytes(10)), 0, 10);
-
-            $resourcePath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'resources';
-            $testDestinationPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . $randomPart;
-
-            $this->filesystem->mkdir($testDestinationPath);
-
-            $fixtureService->create($this->fixtureFile, $resourcePath, $testDestinationPath);
-
-            $this->testDestinationPath = realpath($testDestinationPath);
+            $fixtureService->create(
+                $this->fixturePath . DIRECTORY_SEPARATOR . $this->fixtureFile, $this->resourcesPath, $testDestinationPath
+            );
         }
     }
 

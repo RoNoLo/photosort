@@ -9,11 +9,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Filesystem\Exception\IOException;
 
-class DeleteDuplicatesCommand extends AppBaseCommand
+class DuplicatesDeleteCommand extends AppBaseCommand
 {
     const DELETEDUPLICATES_OUTPUT_FILENAME = 'photosort_deletes.json';
 
-    protected static $defaultName = 'app:delete-duplicates';
+    protected static $defaultName = 'app:delete';
 
     private $sourceFile;
 

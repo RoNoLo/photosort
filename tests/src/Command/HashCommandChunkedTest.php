@@ -15,7 +15,7 @@ class HashCommandChunkedTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = __DIR__ . '/../../fixtures/hash-map.yaml';
+        $this->fixtureFile ='hash-map.yaml';
 
         parent::setUp();
 

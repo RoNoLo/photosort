@@ -28,7 +28,7 @@ class HashMergeCommandTest extends BaseTestCase
     {
         $this->app->add(new HashMergeCommand());
 
-        $command = $this->app->find('app:hash-merge');
+        $command = $this->app->find('app:merge');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
@@ -37,14 +37,18 @@ class HashMergeCommandTest extends BaseTestCase
                 $this->resourcesPath . DIRECTORY_SEPARATOR . 'hash2.json',
                 $this->resourcesPath . DIRECTORY_SEPARATOR . 'hash3.json'
             ],
-            '--output-file' => $this->outputPath,
+            '--output-path' => $this->outputPath,
         ]);
 
-        $this->assertFileExists($this->outputPath);
+        $mergedFilePath = $this->outputPath . DIRECTORY_SEPARATOR . HashMergeCommand::HASHMERGE_OUTPUT_MERGE_FILENAME;
+        $duplicatesHelperFilePath = $this->outputPath . DIRECTORY_SEPARATOR . HashMergeCommand::HASHMERGE_OUTPUT_DUPLICATES_HELPER_FILENAME;
 
-        $array = $this->readDataFromJsonFile($this->outputPath);
+        $this->assertFileExists($mergedFilePath);
+        $this->assertFileExists($duplicatesHelperFilePath);
 
-        $this->assertEquals(20, count($array));
+        $array = $this->readDataFromJsonFile($mergedFilePath);
+
+        $this->assertEquals(15, count($array));
 
         foreach ($array as $filepath => $hashs) {
             $this->assertArrayHasKey('sha1', $hashs);
