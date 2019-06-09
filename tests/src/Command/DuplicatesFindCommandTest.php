@@ -12,7 +12,7 @@ class DuplicatesFindCommandTest extends BaseTestCase
 {
     public function testFindDuplicates()
     {
-        $sourceFile = $this->resourcesPath . DIRECTORY_SEPARATOR . HashCommand::HASHMAP_OUTPUT_FILENAME;
+        $sourceFile = $this->resourcesPath . DIRECTORY_SEPARATOR . HashCommand::HASH_OUTPUT_FILENAME;
         $duplicatesFile = $this->resourcesPath . DIRECTORY_SEPARATOR . DuplicatesFindCommand::FINDDUPLICATES_OUTPUT_FILENAME;
 
         $this->app->add(new DuplicatesFindCommand(new HashService()));

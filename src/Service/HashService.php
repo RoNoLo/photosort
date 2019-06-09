@@ -3,7 +3,6 @@
 namespace App\Service;
 
 use Imagick;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Finder\Finder;
 
 class HashService

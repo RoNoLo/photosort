@@ -14,9 +14,9 @@ use Symfony\Component\Finder\Finder;
 
 class HashCommand extends AppBaseCommand
 {
-    const HASHMAP_IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
-    const HASHMAP_OUTPUT_FILENAME = 'photosort_hashmap.json';
-    const HASHMAP_CHUNK_SAVE = 100;
+    const HASH_IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
+    const HASH_OUTPUT_FILENAME = 'photosort_hashmap.json';
+    const HASH_CHUNK_SAVE = 100;
 
     protected static $defaultName = 'app:hash';
 
@@ -59,15 +59,21 @@ class HashCommand extends AppBaseCommand
 
         $finder = Finder::create()
             ->files()
-            ->name(self::HASHMAP_IMAGES)
+            ->name(self::HASH_IMAGES)
             ->in($this->sourcePath)
         ;
+
+        if (!$finder->hasResults()) {
+            $this->output->writeln("Nothing to do. No files found.");
+            return;
+        }
 
         $fileCount = $finder->count();
         if ($output->isVeryVerbose()) {
             $output->writeln($fileCount . " files found.");
         }
 
+        // On normal verbosity, a progressbar is shown
         if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
             $progressBar = new ProgressBar($output, $fileCount);
             $progressBar->start();
@@ -76,6 +82,8 @@ class HashCommand extends AppBaseCommand
         $outputFile = $this->ensureOutputFile();
 
         $hashs = [];
+
+        // If a hash JSON file exists it will continue
         if ($this->filesystem->exists($outputFile)) {
             $hashs = $this->readJsonFile($outputFile);
 
@@ -94,7 +102,12 @@ class HashCommand extends AppBaseCommand
                 continue;
             }
 
-            $result = $this->hasher->hashFile($filePath, true);
+            try {
+                $result = $this->hasher->hashFile($filePath, true);
+            } catch (\Exception $e) {
+                // We just ignore the - may be wrong - extensioned file
+                continue;
+            }
             $hashs[$filePath] = $result;
 
             $countStatistic = "";
@@ -111,7 +124,7 @@ class HashCommand extends AppBaseCommand
             }
 
             // This will auto save the file every 100 hashs.
-            if ($i % self::HASHMAP_CHUNK_SAVE == 0) {
+            if ($i % self::HASH_CHUNK_SAVE == 0) {
                 $this->writeJsonFile($outputFile, $hashs);
 
                 if ($this->output->isVerbose()) {
@@ -134,7 +147,7 @@ class HashCommand extends AppBaseCommand
     private function ensureOutputFile()
     {
         if (is_null($this->outputFile)) {
-            return $this->sourcePath . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
+            return $this->sourcePath . DIRECTORY_SEPARATOR . self::HASH_OUTPUT_FILENAME;
         }
 
         $pathInfo = pathinfo($this->outputFile);
@@ -150,7 +163,7 @@ class HashCommand extends AppBaseCommand
         }
 
         // Fallback
-        return '.' . DIRECTORY_SEPARATOR . self::HASHMAP_OUTPUT_FILENAME;
+        return '.' . DIRECTORY_SEPARATOR . self::HASH_OUTPUT_FILENAME;
     }
 
     private function persistArgs(InputInterface $input)

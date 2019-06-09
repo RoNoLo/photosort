@@ -74,6 +74,8 @@ class HashMergeCommand extends AppBaseCommand
 
             return $realpath;
         }
+
+        return realpath(dirname($this->sources[0]));
     }
 
     private function persistArgs(InputInterface $input)

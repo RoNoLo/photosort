@@ -8,9 +8,15 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
+/**
+ * Class SortCommand
+ *
+ * @todo: Hash request to prevent duplicates
+ *
+ * @package App\Command
+ */
 class SortCommand extends AppBaseCommand
 {
     const IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
@@ -18,13 +24,20 @@ class SortCommand extends AppBaseCommand
 
     protected static $defaultName = 'app:sort';
 
+    /** @var string */
     private $sourcePath;
 
+    /** @var string */
     private $destinationPath;
 
-    private $notRenameDuplicates;
+    /** @var bool */
+    private $noRename;
 
+    /** @var bool */
     private $monthly;
+
+    /** @var string|null */
+    private $hashFile;
 
     /** @var \SplFileInfo */
     private $currentFile;
@@ -59,13 +72,13 @@ class SortCommand extends AppBaseCommand
     protected function configure()
     {
         $this->setDescription('Copies images into a folder structure YY/YYMM/YYMMDD/files');
-        $this->setHelp("This command will copy images into a folder structure based on the file date of the image.\nA log file (photosort_log.json) will be created in the source directory to see if everything went well.");
+        $this->setHelp("This command will copy images into a folder structure based on the file date of the image.\nA log file (photosort_log.json) will be created in the source directory to see if everything went well. No image will be deleted or moved, just copy.");
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
-        $this->addOption('not-rename-and-copy-duplicates', 'x', InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', false);
+        $this->addOption('no-rename', 'x', InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', false);
         $this->addOption('monthly', 'm', InputOption::VALUE_OPTIONAL, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images', false);
-        $this->addOption('hashs-file', 'f', InputOption::VALUE_OPTIONAL, 'To find duplicates quicker, a file with precalculated hashs can be used.', false);
+        $this->addOption('hash-file', 'f', InputOption::VALUE_OPTIONAL, 'To find duplicates quicker, a file with precalculated hashs can be used.', false);
     }
 
     /**
@@ -161,7 +174,7 @@ class SortCommand extends AppBaseCommand
             }
 
             // So there is a identical named file and no other file in the destination path is identical
-            if ($this->notRenameDuplicates) {
+            if ($this->noRename) {
                 $this->log[$this->currentFile->getPathname()] = 'skipped because a file with identical name, but different content, was already at destination ' . $imageDestinationFilePath;
                 $this->skipped++;
 
@@ -316,11 +329,13 @@ class SortCommand extends AppBaseCommand
     {
         $sourcePath = $input->getArgument('source-path');
         $destinationPath = $input->getArgument('destination-path');
-        $this->notRenameDuplicates = !!$input->getOption('not-rename-and-copy-duplicates');
+        $this->noRename = !!$input->getOption('no-rename');
         $this->monthly = !!$input->getOption('monthly');
+        $this->hashFile = $input->getOption('hash-file');
 
         $this->ensurePathExists($sourcePath);
         $this->ensurePathExists($destinationPath);
+        $this->ensureHashFile();
 
         $this->sourcePath = realpath($sourcePath);
         $this->destinationPath = realpath($destinationPath);
@@ -339,9 +354,10 @@ class SortCommand extends AppBaseCommand
 
     private function findFiles()
     {
-        $finder = new Finder();
-
-        $finder->files()->name(self::IMAGES)->in($this->sourcePath);
+        $finder = Finder::create()
+            ->files()
+            ->name(self::IMAGES)
+            ->in($this->sourcePath);
 
         if (!$finder->hasResults()) {
             if ($this->output->isVerbose()) {
@@ -352,5 +368,12 @@ class SortCommand extends AppBaseCommand
         }
 
         return $finder;
+    }
+
+    private function ensureHashFile()
+    {
+        if (is_null($this->hashFile)) {
+            return;
+        }
     }
 }

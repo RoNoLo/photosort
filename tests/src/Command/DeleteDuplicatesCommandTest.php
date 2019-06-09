@@ -27,7 +27,7 @@ class DeleteDuplicatesCommandTest extends BaseTestCase
 
     public function testDeleteDuplicates()
     {
-        $sourceFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . HashCommand::HASHMAP_OUTPUT_FILENAME;
+        $sourceFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . HashCommand::HASH_OUTPUT_FILENAME;
         $duplicatesFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . DuplicatesFindCommand::FINDDUPLICATES_OUTPUT_FILENAME;
 
         $this->app->add(new HashCommand(new HashService()));

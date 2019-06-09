@@ -20,7 +20,7 @@ class HashCommandTest extends BaseTestCase
         parent::setUp();
 
         $this->sourcePath = realpath($this->testDestinationPath . DIRECTORY_SEPARATOR . 'source');
-        $this->outputFile = realpath($this->testDestinationPath) . DIRECTORY_SEPARATOR . HashCommand::HASHMAP_OUTPUT_FILENAME;
+        $this->outputFile = realpath($this->testDestinationPath) . DIRECTORY_SEPARATOR . HashCommand::HASH_OUTPUT_FILENAME;
     }
 
     public function testHasingImagesRecursive()
