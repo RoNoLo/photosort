@@ -3,7 +3,7 @@
 namespace App\Tests\Command;
 
 use App\Command\HashCommand;
-use App\Command\HashMergeCommand;
+use App\Command\MergeCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -26,7 +26,7 @@ class HashMergeCommandTest extends BaseTestCase
 
     public function testHasingImagesRecursive()
     {
-        $this->app->add(new HashMergeCommand());
+        $this->app->add(new MergeCommand());
 
         $command = $this->app->find('app:merge');
         $commandTester = new CommandTester($command);
@@ -40,8 +40,8 @@ class HashMergeCommandTest extends BaseTestCase
             '--output-path' => $this->outputPath,
         ]);
 
-        $mergedFilePath = $this->outputPath . DIRECTORY_SEPARATOR . HashMergeCommand::HASHMERGE_OUTPUT_MERGE_FILENAME;
-        $duplicatesHelperFilePath = $this->outputPath . DIRECTORY_SEPARATOR . HashMergeCommand::HASHMERGE_OUTPUT_DUPLICATES_HELPER_FILENAME;
+        $mergedFilePath = $this->outputPath . DIRECTORY_SEPARATOR . MergeCommand::HASHMERGE_OUTPUT_MERGE_FILENAME;
+        $duplicatesHelperFilePath = $this->outputPath . DIRECTORY_SEPARATOR . MergeCommand::HASHMERGE_OUTPUT_DUPLICATES_HELPER_FILENAME;
 
         $this->assertFileExists($mergedFilePath);
         $this->assertFileExists($duplicatesHelperFilePath);

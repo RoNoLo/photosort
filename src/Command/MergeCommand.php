@@ -12,17 +12,17 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
-class HashMergeCommand extends AppBaseCommand
+class MergeCommand extends AppBaseCommand
 {
     const HASHMERGE_OUTPUT_MERGE_FILENAME = 'photosort_hashs_merged.json';
-    const HASHMERGE_OUTPUT_DUPLICATES_HELPER_FILENAME = 'photosort_hashs_duplicates_helper.json';
 
     protected static $defaultName = 'app:merge';
 
-    // Args
+    /** @var string[] */
     private $sources;
 
-    private $outputPath;
+    /** @var string */
+    private $outputFile;
 
     protected function configure()
     {
@@ -30,7 +30,7 @@ class HashMergeCommand extends AppBaseCommand
         $this->setHelp('Merges and convertes multiple hash files into bigger files.');
 
         $this->addArgument('sources', InputArgument::IS_ARRAY, 'Source hash files (separated by space).');
-        $this->addOption('output-path', 'o', InputOption::VALUE_OPTIONAL, 'Path to output JSON files (default: will write in first source-path)', null);
+        $this->addOption('output-file', 'o', InputOption::VALUE_OPTIONAL, 'Path to output JSON file (default: will write in first source-path)', null);
     }
 
     /**
@@ -49,28 +49,18 @@ class HashMergeCommand extends AppBaseCommand
         $outputPath = $this->ensureOutputFilePath();
 
         $mergedFilePath = $outputPath . DIRECTORY_SEPARATOR . self::HASHMERGE_OUTPUT_MERGE_FILENAME;
-        $duplicatesHelperFilePath = $outputPath . DIRECTORY_SEPARATOR . self::HASHMERGE_OUTPUT_DUPLICATES_HELPER_FILENAME;
 
         $this->writeJsonFile($mergedFilePath, $data);
-
-        $hash = [];
-        foreach ($data as $filepath => $items) {
-            foreach ($items as $item) {
-                $hash[$item] = $filepath;
-            }
-        }
-
-        $this->writeJsonFile($duplicatesHelperFilePath, $hash);
     }
 
     private function ensureOutputFilePath()
     {
-        if (is_null($this->outputPath)) {
+        if (is_null($this->outputFile)) {
             return realpath(dirname($this->sources[0]));
         }
 
-        if ($this->filesystem->exists($this->outputPath)) {
-            $realpath = realpath($this->outputPath);
+        if ($this->filesystem->exists($this->outputFile)) {
+            $realpath = realpath($this->outputFile);
 
             return $realpath;
         }
@@ -81,10 +71,10 @@ class HashMergeCommand extends AppBaseCommand
     private function persistArgs(InputInterface $input)
     {
         $this->sources = $input->getArgument('sources');
-        $this->outputPath = $input->getOption('output-path');
+        $this->outputFile = $input->getOption('output-file');
 
         $this->ensureSources();
-        $this->ensureOutputPath();
+        $this->ensureOutputFile();
     }
 
     private function ensureSources()
@@ -100,18 +90,18 @@ class HashMergeCommand extends AppBaseCommand
         }
     }
 
-    private function ensureOutputPath()
+    private function ensureOutputFile()
     {
-        if (is_null($this->outputPath)) {
+        if (is_null($this->outputFile)) {
             return;
         }
 
-        if ($this->filesystem->exists($this->outputPath) && is_dir($this->outputPath)) {
+        if ($this->filesystem->exists($this->outputFile) && is_file($this->outputFile)) {
             return;
         }
 
-        if ($this->filesystem->exists($this->outputPath) && is_file($this->outputPath)) {
-            throw new InvalidArgumentException("The output should be an directory not a file.");
+        if ($this->filesystem->exists($this->outputFile) && is_dir($this->outputFile)) {
+            throw new InvalidArgumentException("The option --output-file should point to a file");
         }
 
         throw new InvalidArgumentException("The output directory does not exist or is not accessible.");

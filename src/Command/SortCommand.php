@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Service\HashService;
+use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -12,8 +13,6 @@ use Symfony\Component\Finder\Finder;
 
 /**
  * Class SortCommand
- *
- * @todo: Hash request to prevent duplicates
  *
  * @package App\Command
  */
@@ -57,6 +56,9 @@ class SortCommand extends AppBaseCommand
     /** @var HashService */
     private $hasher;
 
+    /** @var array */
+    private $hashs = [];
+
     public function __construct(HashService $hashService)
     {
         $this->hasher = $hashService;
@@ -78,7 +80,7 @@ class SortCommand extends AppBaseCommand
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
         $this->addOption('no-rename', 'x', InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', false);
         $this->addOption('monthly', 'm', InputOption::VALUE_OPTIONAL, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images', false);
-        $this->addOption('hash-file', 'f', InputOption::VALUE_OPTIONAL, 'To find duplicates quicker, a file with precalculated hashs can be used.', false);
+        $this->addOption('hash-file', 'f', InputOption::VALUE_OPTIONAL, 'To find duplicates quicker, a file with precalculated hashs can be used.', null);
     }
 
     /**
@@ -106,6 +108,21 @@ class SortCommand extends AppBaseCommand
             }
 
             $this->currentFile = $file;
+
+            if ($this->hashFile) {
+                try {
+                    $hashs = $this->hasher->hashFile($file->getPathname(), true);
+
+                    foreach ($hashs as $type => $hash) {
+                        if (isset($this->hashs[$hash])) {
+                            $this->log[$file->getPathname()] = 'identical to ' . $this->hashs[$hash] . ' (found via duplicates hash)';
+                            $this->identical++;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    ; // Do nothing
+                }
+            }
 
             if ($output->isVerbose()) {
                 $output->writeln("Image: " . $file->getBasename());
@@ -344,11 +361,11 @@ class SortCommand extends AppBaseCommand
     private function ensurePathExists(?string $directoryPath)
     {
         if (!$this->filesystem->exists($directoryPath)) {
-            throw new IOException("The directory `{$directoryPath}` does not exists.");
+            throw new InvalidArgumentException("The directory `{$directoryPath}` does not exists.");
         }
 
         if (!is_dir($directoryPath) || !is_readable($directoryPath)) {
-            throw new IOException("The directory `{$directoryPath}` is not readable.");
+            throw new InvalidArgumentException("The directory `{$directoryPath}` is not readable.");
         }
     }
 
@@ -364,7 +381,7 @@ class SortCommand extends AppBaseCommand
                 $this->output->writeln("Source directory had no image files to process.");
             }
 
-            throw new IOException("The source directory had no files to process.");
+            throw new InvalidArgumentException("The source directory had no files to process.");
         }
 
         return $finder;
@@ -375,5 +392,17 @@ class SortCommand extends AppBaseCommand
         if (is_null($this->hashFile)) {
             return;
         }
+
+        if ($this->filesystem->exists($this->hashFile)) {
+            $data = $this->readJsonFile($this->hashFile);
+
+            foreach ($data as $filepath => $items) {
+                foreach ($items as $item) {
+                    $this->hashs[$item] = $filepath;
+                }
+            }
+        }
+
+        throw new InvalidArgumentException("The hash file was not found or not readable");
     }
 }
