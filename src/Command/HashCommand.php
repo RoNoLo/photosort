@@ -57,18 +57,14 @@ class HashCommand extends AppBaseCommand
         $this->persistInput($input, $output);
         $this->persistArgs($input);
 
-        $finder = Finder::create()
-            ->files()
-            ->name(self::HASH_IMAGES)
-            ->in($this->sourcePath)
-        ;
+        $files = $this->fetchFiles();
 
-        if (!$finder->hasResults()) {
+        if (!$files->hasResults()) {
             $this->output->writeln("Nothing to do. No files found.");
             return;
         }
 
-        $fileCount = $finder->count();
+        $fileCount = $files->count();
         if ($output->isVeryVerbose()) {
             $output->writeln($fileCount . " files found.");
         }
@@ -94,7 +90,7 @@ class HashCommand extends AppBaseCommand
 
         $i = 0;
         /** @var \SplFileInfo $file */
-        foreach ($finder as $file) {
+        foreach ($files as $file) {
             $i++;
             $filePath = $file->getRealPath();
 
@@ -201,5 +197,16 @@ class HashCommand extends AppBaseCommand
         }
 
         throw new InvalidOptionException("The --output-file option file path does not exist or is not accessible.");
+    }
+
+    private function fetchFiles()
+    {
+        $finder = Finder::create()
+            ->files()
+            ->name(self::HASH_IMAGES)
+            ->in($this->sourcePath)
+        ;
+
+        return $finder;
     }
 }

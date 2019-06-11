@@ -2,7 +2,7 @@
 
 namespace App\Tests\Command;
 
-use App\Command\DuplicatesFindCommand;
+use App\Command\DupsCommand;
 use App\Command\HashCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
@@ -32,7 +32,7 @@ class DuplicatesFindCommandFileOnlyTest extends BaseTestCase
             '--output-file' => $this->sourcePath . DIRECTORY_SEPARATOR . HashCommand::HASH_OUTPUT_FILENAME,
        ]);
 
-        $this->app->add(new DuplicatesFindCommand(new HashService()));
+        $this->app->add(new DupsCommand(new HashService()));
         $command = $this->app->find('app:dups');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
@@ -40,10 +40,10 @@ class DuplicatesFindCommandFileOnlyTest extends BaseTestCase
             'sources' => [$this->sourcePath . DIRECTORY_SEPARATOR . HashCommand::HASH_OUTPUT_FILENAME],
         ]);
 
-        $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . DuplicatesFindCommand::FINDDUPLICATES_OUTPUT_FILENAME);
+        $this->assertFileExists($this->sourcePath . DIRECTORY_SEPARATOR . DupsCommand::FINDDUPLICATES_OUTPUT_FILENAME);
 
         $result = $this->readDataFromJsonFile(
-            $this->sourcePath . DIRECTORY_SEPARATOR . DuplicatesFindCommand::FINDDUPLICATES_OUTPUT_FILENAME
+            $this->sourcePath . DIRECTORY_SEPARATOR . DupsCommand::FINDDUPLICATES_OUTPUT_FILENAME
         );
 
         $this->assertCount(6, $result);

@@ -2,8 +2,8 @@
 
 namespace App\Tests\Command;
 
-use App\Command\DuplicatesDeleteCommand;
-use App\Command\DuplicatesFindCommand;
+use App\Command\DeleteCommand;
+use App\Command\DupsCommand;
 use App\Command\HashCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
@@ -28,11 +28,11 @@ class DeleteDuplicatesCommandTest extends BaseTestCase
     public function testDeleteDuplicates()
     {
         $sourceFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . HashCommand::HASH_OUTPUT_FILENAME;
-        $duplicatesFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . DuplicatesFindCommand::FINDDUPLICATES_OUTPUT_FILENAME;
+        $duplicatesFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . DupsCommand::FINDDUPLICATES_OUTPUT_FILENAME;
 
         $this->app->add(new HashCommand(new HashService()));
-        $this->app->add(new DuplicatesFindCommand(new HashService()));
-        $this->app->add(new DuplicatesDeleteCommand());
+        $this->app->add(new DupsCommand(new HashService()));
+        $this->app->add(new DeleteCommand());
 
         $command = $this->app->find('app:hash');
         $commandTester = new CommandTester($command);

@@ -18,7 +18,7 @@ use Symfony\Component\Filesystem\Exception\IOException;
  *
  * @package App\Command
  */
-class DuplicatesDeleteCommand extends AppBaseCommand
+class DeleteCommand extends AppBaseCommand
 {
     const DELETEDUPLICATES_ALLOWED_EXTENSIONS = ['jpg', 'jpeg'];
     const DELETEDUPLICATES_OUTPUT_FILENAME = 'photosort_deletes.json';

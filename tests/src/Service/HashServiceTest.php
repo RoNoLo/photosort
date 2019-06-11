@@ -2,7 +2,7 @@
 
 namespace App\Tests\Service;
 
-use App\Command\HashMapCommand;
+use App\Command\HashCommand;
 use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Finder\Finder;
@@ -15,19 +15,19 @@ class HashServiceTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = __DIR__ . '/../../fixtures/hash-map.yaml';
+        $this->fixtureFile = 'hash-map.yaml';
 
         parent::setUp();
 
-        $this->sourcePath = realpath(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . 'source');
-        $this->outputPath = realpath(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tmp');
+        $this->sourcePath = $this->testDestinationPath . DIRECTORY_SEPARATOR . 'source';
+        $this->outputPath = $this->testDestinationPath;
     }
 
     public function testCreatingHashsOfPath()
     {
         $finder = Finder::create()
             ->files()
-            ->name(['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'])
+            ->name(HashCommand::HASH_IMAGES)
             ->in($this->sourcePath);
 
         $hasher = new HashService();
@@ -145,16 +145,5 @@ class HashServiceTest extends BaseTestCase
         $this->assertFalse($result10);
         $this->assertFalse($result10);
         $this->assertFalse($result11);
-    }
-
-    protected function tearDown()
-    {
-        if ($this->filesystem->exists($this->sourcePath)) {
-            $this->filesystem->remove($this->sourcePath);
-        }
-
-        if ($this->filesystem->exists($this->outputPath . DIRECTORY_SEPARATOR . HashMapCommand::HASHMAP_OUTPUT_FILENAME)) {
-            $this->filesystem->remove($this->outputPath . DIRECTORY_SEPARATOR . 'photosort_hashmap.json');
-        }
     }
 }
