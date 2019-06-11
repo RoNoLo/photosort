@@ -23,7 +23,7 @@ class HashCommandTest extends BaseTestCase
         $this->outputFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . HashCommand::HASH_OUTPUT_FILENAME;
     }
 
-    public function testHasingImagesRecursive()
+    public function testHasingRecursive()
     {
         $this->app->add(new HashCommand(new HashService()));
 

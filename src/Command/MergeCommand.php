@@ -46,17 +46,15 @@ class MergeCommand extends AppBaseCommand
 
         $data = $this->readJsonFilesAndMerge($this->sources);
 
-        $outputPath = $this->ensureOutputFilePath();
+        $outputFile = $this->ensureOutputFilePath();
 
-        $mergedFilePath = $outputPath . DIRECTORY_SEPARATOR . self::HASHMERGE_OUTPUT_MERGE_FILENAME;
-
-        $this->writeJsonFile($mergedFilePath, $data);
+        $this->writeJsonFile($outputFile, $data);
     }
 
     private function ensureOutputFilePath()
     {
         if (is_null($this->outputFile)) {
-            return realpath(dirname($this->sources[0]));
+            return realpath(dirname($this->sources[0]) . DIRECTORY_SEPARATOR . self::HASHMERGE_OUTPUT_MERGE_FILENAME);
         }
 
         if ($this->filesystem->exists($this->outputFile)) {
@@ -65,7 +63,7 @@ class MergeCommand extends AppBaseCommand
             return $realpath;
         }
 
-        return realpath(dirname($this->sources[0]));
+        return $this->outputFile;
     }
 
     private function persistArgs(InputInterface $input)
@@ -101,9 +99,15 @@ class MergeCommand extends AppBaseCommand
         }
 
         if ($this->filesystem->exists($this->outputFile) && is_dir($this->outputFile)) {
-            throw new InvalidArgumentException("The option --output-file should point to a file");
+            throw new InvalidArgumentException("The option --output-file should point to a file.");
         }
 
-        throw new InvalidArgumentException("The output directory does not exist or is not accessible.");
+        $pathInfo = pathinfo($this->outputFile);
+
+        if (!empty($pathInfo['dirname']) && !empty($pathInfo['basename'])) {
+            if ($pathInfo['extension'] !== 'json') {
+                throw new InvalidArgumentException("The option --output-file should point to a JSON file.");
+            }
+        }
     }
 }
