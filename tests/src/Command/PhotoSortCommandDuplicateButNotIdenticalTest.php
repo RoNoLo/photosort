@@ -16,7 +16,7 @@ class PhotoSortCommandDuplicateButNotIdenticalTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = __DIR__ . '/../../fixtures/photo-sort-duplicate-but-not-identical.yaml';
+        $this->fixtureFile = 'photo-sort-duplicate-but-not-identical.yaml';
 
         parent::setUp();
 
@@ -31,9 +31,9 @@ class PhotoSortCommandDuplicateButNotIdenticalTest extends BaseTestCase
 
     public function testOptionsAreDefaultAndNoExistingStructure()
     {
-        $this->app->add(new SortCommand($this->filesystem, new HashService()));
+        $this->app->add(new SortCommand(new HashService()));
 
-        $command = $this->app->find('app:photo-sort');
+        $command = $this->app->find('app:sort');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
@@ -43,7 +43,7 @@ class PhotoSortCommandDuplicateButNotIdenticalTest extends BaseTestCase
 
         $structureTester = new DirectoryStructureCheckerService($this->filesystem);
 
-        $result = $structureTester->check($this->fixtureFile, $this->destinationPath);
+        $result = $structureTester->check($this->fixturePath . DIRECTORY_SEPARATOR . $this->fixtureFile, $this->destinationPath);
 
         $this->assertTrue($result);
 

@@ -16,7 +16,7 @@ class PhotoSortCommandMonthlyNoExistingDestinationTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = __DIR__ . '/../../fixtures/photo-sort-monthly-no-existing-files.yaml';
+        $this->fixtureFile = 'photo-sort-monthly-no-existing-files.yaml';
 
         parent::setUp();
 
@@ -31,9 +31,9 @@ class PhotoSortCommandMonthlyNoExistingDestinationTest extends BaseTestCase
 
     public function testOptionsAreDefaultAndNoExistingStructure()
     {
-        $this->app->add(new SortCommand($this->filesystem, new HashService()));
+        $this->app->add(new SortCommand(new HashService()));
 
-        $command = $this->app->find('app:photo-sort');
+        $command = $this->app->find('app:sort');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
@@ -44,7 +44,7 @@ class PhotoSortCommandMonthlyNoExistingDestinationTest extends BaseTestCase
 
         $structureTester = new DirectoryStructureCheckerService($this->filesystem);
 
-        $result = $structureTester->check($this->fixtureFile, $this->destinationPath);
+        $result = $structureTester->check($this->fixturePath . DIRECTORY_SEPARATOR . $this->fixtureFile, $this->destinationPath);
 
         $this->assertTrue($result);
 

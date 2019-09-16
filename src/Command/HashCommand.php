@@ -12,9 +12,15 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Finder\Finder;
 
+/**
+ * Command to Hash files and create image digests.
+ *
+ * Todo: add .hashignore files support
+ *
+ * @package App\Command
+ */
 class HashCommand extends AppBaseCommand
 {
-    const HASH_IMAGES = ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG'];
     const HASH_OUTPUT_FILENAME = 'photosort_hashmap.json';
     const HASH_CHUNK_SAVE = 100;
 
@@ -28,6 +34,9 @@ class HashCommand extends AppBaseCommand
 
     /** @var string */
     private $outputFile;
+
+    /** @var string[] */
+    private $fileMask;
 
     public function __construct(HashService $hashService)
     {
@@ -43,6 +52,7 @@ class HashCommand extends AppBaseCommand
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addOption('output-file', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
+        $this->addOption('file-mask', 'm', InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'List of Finder Component compatible name filter (separated by space)', []);
     }
 
     /**
@@ -167,8 +177,11 @@ class HashCommand extends AppBaseCommand
         $this->sourcePath = $input->getArgument('source-path');
         $this->outputFile = $input->getOption('output-file');
 
+        $this->fileMask = $input->getOption('file-mask');
+
         $this->ensureSource();
         $this->ensureOutput();
+        $this->ensureFileMask();
     }
 
     private function ensureSource()
@@ -203,10 +216,21 @@ class HashCommand extends AppBaseCommand
     {
         $finder = Finder::create()
             ->files()
-            ->name(self::HASH_IMAGES)
+            ->name($this->fileMask)
             ->in($this->sourcePath)
         ;
 
         return $finder;
+    }
+
+    private function ensureFileMask()
+    {
+        if (!is_array($this->fileMask)) {
+            $this->fileMask = [];
+        }
+
+        if (!count($this->fileMask)) {
+            $this->fileMask = ["*.*"];
+        }
     }
 }

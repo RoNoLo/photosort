@@ -16,35 +16,36 @@ class PhotoSortCommandDuplicateButNotIdenticalNoRenameTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = __DIR__ . '/../../fixtures/photo-sort-duplicate-but-not-identical-no-rename.yaml';
+        $this->fixtureFile = 'photo-sort-duplicate-but-not-identical-no-rename.yaml';
 
         parent::setUp();
 
+        $sourcePath = $this->testDestinationPath . DIRECTORY_SEPARATOR . 'source';
         $destinationPath = $this->testDestinationPath . DIRECTORY_SEPARATOR . 'destination';
         if (!$this->filesystem->exists($destinationPath)) {
             $this->filesystem->mkdir($destinationPath);
         }
 
-        $this->sourcePath = realpath($this->testDestinationPath . DIRECTORY_SEPARATOR . 'source');
-        $this->destinationPath = realpath($this->testDestinationPath . DIRECTORY_SEPARATOR . 'destination');
+        $this->sourcePath = realpath($sourcePath);
+        $this->destinationPath = realpath($destinationPath);
     }
 
     public function testOptionsAreDefaultAndNoExistingStructure()
     {
-        $this->app->add(new SortCommand($this->filesystem, new HashService()));
+        $this->app->add(new SortCommand(new HashService()));
 
-        $command = $this->app->find('app:photo-sort');
+        $command = $this->app->find('app:sort');
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'command' => $command->getName(),
             'source-path' => $this->sourcePath,
             'destination-path' => $this->destinationPath,
-            '--not-rename-and-copy-duplicates' => true
+            '--no-rename' => true
         ]);
 
         $structureTester = new DirectoryStructureCheckerService($this->filesystem);
 
-        $result = $structureTester->check($this->fixtureFile, $this->destinationPath);
+        $result = $structureTester->check($this->fixturePath . DIRECTORY_SEPARATOR . $this->fixtureFile, $this->destinationPath);
 
         $this->assertTrue($result);
 

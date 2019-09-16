@@ -24,12 +24,12 @@ class HashService
         $hashs['sha1'] = sha1_file($filePath);
 
         if ($imageHash && $this->imageHashsEnabled) {
-            $this->ensureSupportedImage($filePath, $imageHash);
+            if ($this->ensureSupportedImage($filePath, $imageHash)) {
+                $imagick = new Imagick($filePath);
+                $signature = $imagick->getImageSignature();
 
-            $imagick = new Imagick($filePath);
-            $signature = $imagick->getImageSignature();
-
-            $hashs['signature'] = $signature;
+                $hashs['signature'] = $signature;
+            }
         }
 
         return $hashs;
@@ -95,14 +95,16 @@ class HashService
     private function ensureSupportedImage(string $filePath, bool $imageHash)
     {
         if (!$imageHash) {
-            return;
+            return false;
         }
 
         $result = getimagesize($filePath);
 
         if (!in_array($result[2], [IMG_GIF, IMG_JPG, IMG_PNG])) {
-            throw new \Exception("The image type is not supported for hashing.");
+            return false;
         }
+
+        return true;
     }
 
     private function ensureImagickExtension()
