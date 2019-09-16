@@ -7,7 +7,7 @@ use App\Service\HashService;
 use App\Tests\BaseTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class HashCommandTest extends BaseTestCase
+class HashCommandOutputFileTest extends BaseTestCase
 {
     private $sourcePath;
 
@@ -15,7 +15,7 @@ class HashCommandTest extends BaseTestCase
 
     public function setUp()
     {
-        $this->fixtureFile = 'hash-map.yaml';
+        $this->fixtureFile = 'hash-output-file.yaml';
 
         parent::setUp();
 
@@ -23,7 +23,7 @@ class HashCommandTest extends BaseTestCase
         $this->outputFile = $this->testDestinationPath . DIRECTORY_SEPARATOR . HashCommand::HASH_OUTPUT_FILENAME;
     }
 
-    public function testHasingRecursive()
+    public function testHashingRecursive()
     {
         $this->app->add(new HashCommand(new HashService()));
 
