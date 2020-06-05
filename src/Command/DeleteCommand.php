@@ -59,6 +59,8 @@ class DeleteCommand extends AppBaseCommand
         $this->deleteDuplicates($data);
 
         $this->writeJsonFile(dirname($this->sourceFile) . DIRECTORY_SEPARATOR . self::DELETEDUPLICATES_OUTPUT_FILENAME, $this->log);
+
+        return 0;
     }
 
     private function deleteDuplicates($data)
@@ -150,7 +152,7 @@ class DeleteCommand extends AppBaseCommand
             $this->output->writeln("Deleting: " . $filePath);
         }
 
-        // $this->filesystem->remove($filePath);
+        $this->filesystem->remove($filePath);
     }
 
     private function persistArgs(InputInterface $input)

@@ -148,6 +148,8 @@ class HashCommand extends AppBaseCommand
         if ($output->isVerbose()) {
             $output->writeln('Result: ' . $outputFile);
         }
+
+        return 0;
     }
 
     private function ensureOutputFile()

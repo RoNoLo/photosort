@@ -142,6 +142,8 @@ class SortCommand extends AppBaseCommand
         }
 
         $this->writeLogfile();
+
+        return 0;
     }
 
     private function buildDestinationPath(\SplFileInfo $file)

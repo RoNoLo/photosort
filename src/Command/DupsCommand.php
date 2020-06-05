@@ -58,6 +58,8 @@ class DupsCommand extends AppBaseCommand
         $result = $this->findDuplicates($data);
 
         $this->writeJsonFile(dirname($this->sources[0]) . DIRECTORY_SEPARATOR . self::FINDDUPLICATES_OUTPUT_FILENAME, $result);
+
+        return 0;
     }
 
     private function findDuplicates(&$data)
@@ -169,7 +171,8 @@ class DupsCommand extends AppBaseCommand
         $this->output->write("\n");
 
         foreach ($duplicates as $i => $files) {
-            $duplicates[$i] = array_unique($files);
+            sort($files);
+            $duplicates[$i] = array_values(array_unique($files));
         }
 
         return $duplicates;
