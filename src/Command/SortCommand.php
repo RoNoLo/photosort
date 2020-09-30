@@ -215,6 +215,10 @@ class SortCommand extends AppBaseCommand
         // Copy the file
         try {
             $this->filesystem->copy($imageSourceFilePath, $imageDestinationFilePath);
+            $fileMTime = filemtime($imageSourceFilePath);
+            if ($fileMTime) {
+                touch($imageDestinationFilePath, $fileMTime);
+            }
 
             $this->log[$this->currentFile->getPathname()] = 'copied to ' . $imageDestinationFilePath;
             $this->copied++;
@@ -371,7 +375,7 @@ class SortCommand extends AppBaseCommand
         }
     }
 
-    private function findFiles()
+    private function            findFiles()
     {
         $finder = Finder::create()
             ->files()
