@@ -52,7 +52,7 @@ class HashCommand extends AppBaseCommand
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addOption('output-file', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
-        $this->addOption('file-mask', 'm', InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'List of Finder Component compatible name filter (separated by space)', []);
+        $this->addOption('file-mask', 'm', InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'List of Finder Component compatible name filter (separated by space). Default is an common images only definition. Set to "*.*" to hash everything.', []);
     }
 
     /**
@@ -178,7 +178,6 @@ class HashCommand extends AppBaseCommand
     {
         $this->sourcePath = $input->getArgument('source-path');
         $this->outputFile = $input->getOption('output-file');
-
         $this->fileMask = $input->getOption('file-mask');
 
         $this->ensureSource();
@@ -232,7 +231,7 @@ class HashCommand extends AppBaseCommand
         }
 
         if (!count($this->fileMask)) {
-            $this->fileMask = ["*.*"];
+            $this->fileMask = ["*.jpg", "*.jpeg", "*.JPG", "*.tif", "*.tiff", "*.png", "*.gif", "*.raw", "*.bmp"];
         }
     }
 }
