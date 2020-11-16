@@ -1,6 +1,6 @@
 {
   "name": "ronolo/photosort",
-  "description": "Sorts images by date into a folder structure of YYYY/YYMM/YYMMDD structure",
+  "description": "Sorts images by date into a folder structure of YYYY/YYMM/YYMMDD or YYYY/YYMM structure",
   "minimum-stability": "stable",
   "license": "proprietary",
   "authors": [

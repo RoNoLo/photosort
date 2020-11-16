@@ -41,17 +41,26 @@ class SortCommand extends AppBaseCommand
     /** @var \SplFileInfo */
     private $currentFile;
 
+    /** @var array This will keep the actions performed for a log */
     private $log = [];
 
+    /** @var int Errors on file handling */
     private $errors = 0;
 
+    /** @var int Identical files found */
     private $identical = 0;
 
+    /** @var int Total of processed files */
     private $total = 0;
 
+    /** @var int Copied files */
     private $copied = 0;
 
+    /** @var int Skipped files */
     private $skipped = 0;
+
+    /** @var array Original format of the hash-map file. */
+    private $hashsOriginal = [];
 
     /** @var HashService */
     private $hasher;
@@ -78,9 +87,9 @@ class SortCommand extends AppBaseCommand
 
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source directory');
         $this->addArgument('destination-path', InputArgument::REQUIRED, 'Destination directory root');
-        $this->addOption('no-rename', 'x', InputOption::VALUE_OPTIONAL, 'Rename images which have the same name, but are not identical', false);
-        $this->addOption('monthly', 'm', InputOption::VALUE_OPTIONAL, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images', false);
-        $this->addOption('hash-file', 'f', InputOption::VALUE_OPTIONAL, 'To find duplicates quicker, a file with precalculated hashs can be used.', null);
+        $this->addOption('no-rename', 'x', InputOption::VALUE_NONE, 'Rename images which have the same name, but are not identical');
+        $this->addOption('monthly', 'm', InputOption::VALUE_NONE, 'Sort only YY/YYMM/images instead of YY/YYMM/YYMMDD/images');
+        $this->addOption('hash-file', 'f', InputOption::VALUE_REQUIRED, 'To find duplicates quicker, a file with precalculated hashs can be used.', null);
     }
 
     /**
@@ -105,6 +114,7 @@ class SortCommand extends AppBaseCommand
             if ($file->getSize() === 0) {
                 $this->log[$this->currentFile->getPathname()] = 'skipped because the filesize was 0 bytes';
                 $this->skipped++;
+                continue;
             }
 
             $this->currentFile = $file;
@@ -115,8 +125,9 @@ class SortCommand extends AppBaseCommand
 
                     foreach ($hashs as $type => $hash) {
                         if (isset($this->hashs[$hash])) {
-                            $this->log[$file->getPathname()] = 'identical to ' . $this->hashs[$hash] . ' (found via duplicates hash)';
+                            $this->log[$file->getPathname()] = 'Identical to ' . $this->hashs[$hash] . ' (found via duplicates hash)';
                             $this->identical++;
+                            continue 2;
                         }
                     }
                 } catch (\Exception $e) {
@@ -130,6 +141,16 @@ class SortCommand extends AppBaseCommand
 
             $imageDestinationFilePath = $this->buildDestinationPath($file);
 
+            // If we use an hash-file, we will add new files here.
+            if ($this->hashFile) {
+                $this->hashsOriginal[$imageDestinationFilePath] = $hashs;
+
+                // Here we add it to the list we match against in the ongoing sort process
+                foreach ($hashs as $type => $hash) {
+                    $this->hashs[$hash] = $imageDestinationFilePath;
+                }
+            }
+
             if ($output->isVeryVerbose()) {
                 $output->writeln("Destination Path: " . $imageDestinationFilePath);
             }
@@ -142,6 +163,16 @@ class SortCommand extends AppBaseCommand
         }
 
         $this->writeLogfile();
+
+        if ($this->hashFile) {
+            // Backup first
+            $this->filesystem->copy($this->hashFile, $this->hashFile . '.' . date('YmdHis') . '.bak');
+            $this->writeJsonFile($this->hashFile, $this->hashsOriginal);
+
+            if ($output->isVerbose()) {
+                $output->writeln('Updated: ' . $this->hashFile);
+            }
+        }
 
         return 0;
     }
@@ -194,7 +225,7 @@ class SortCommand extends AppBaseCommand
 
             // So there is a identical named file and no other file in the destination path is identical
             if ($this->noRename) {
-                $this->log[$this->currentFile->getPathname()] = 'skipped because a file with identical name, but different content, was already at destination ' . $imageDestinationFilePath;
+                $this->log[$this->currentFile->getPathname()] = 'Skipped because a file with identical name, but different content, was already at destination ' . $imageDestinationFilePath;
                 $this->skipped++;
 
                 if ($this->output->isDebug()) {
@@ -220,15 +251,15 @@ class SortCommand extends AppBaseCommand
                 touch($imageDestinationFilePath, $fileMTime);
             }
 
-            $this->log[$this->currentFile->getPathname()] = 'copied to ' . $imageDestinationFilePath;
+            $this->log[$this->currentFile->getPathname()] = 'Copy to ' . $imageDestinationFilePath;
             $this->copied++;
 
             if ($this->output->isVerbose()) {
-                $this->output->writeln("copied from: " . $this->currentFile->getPathname() . " to: ". $imageDestinationFilePath);
+                $this->output->writeln("Copy from: " . $this->currentFile->getPathname() . " to: ". $imageDestinationFilePath);
             }
         } catch (IOException $e) {
             $this->errors++;
-            $this->log[$this->currentFile->getPathname()] = 'error on copy ' . $e->getMessage();
+            $this->log[$this->currentFile->getPathname()] = 'Error on copy ' . $e->getMessage();
         }
     }
 
@@ -237,7 +268,7 @@ class SortCommand extends AppBaseCommand
         $result = $this->hasher->compareFile($sourceFile, $destinationFile, true);
 
         if ($result) {
-            $this->log[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
+            $this->log[$this->currentFile->getPathname()] = 'Identical to ' . $destinationFile;
 
             if ($this->output->isDebug()) {
                 $this->output->writeln($this->currentFile->getPathname() . " is identical to " . $destinationFile);
@@ -276,7 +307,7 @@ class SortCommand extends AppBaseCommand
             $result = $this->hasher->compareFile($sourceFile, $destinationFile);
 
             if ($result) {
-                $this->log[$this->currentFile->getPathname()] = 'identical to ' . $destinationFile;
+                $this->log[$this->currentFile->getPathname()] = 'Identical to ' . $destinationFile;
 
                 if ($this->output->isDebug()) {
                     $this->output->writeln($this->currentFile->getPathname() . " is identical to " . $destinationFile);
@@ -375,7 +406,7 @@ class SortCommand extends AppBaseCommand
         }
     }
 
-    private function            findFiles()
+    private function findFiles()
     {
         $finder = Finder::create()
             ->files()
@@ -399,16 +430,16 @@ class SortCommand extends AppBaseCommand
             return;
         }
 
-        if ($this->filesystem->exists($this->hashFile)) {
-            $data = $this->readJsonFile($this->hashFile);
-
-            foreach ($data as $filepath => $items) {
-                foreach ($items as $item) {
-                    $this->hashs[$item] = $filepath;
-                }
-            }
+        if (!$this->filesystem->exists($this->hashFile)) {
+            throw new InvalidArgumentException("The hash file was not found or not readable");
         }
 
-        throw new InvalidArgumentException("The hash file was not found or not readable");
+        $this->hashsOriginal = $this->readJsonFile($this->hashFile);
+
+        foreach ($this->hashsOriginal as $filepath => $items) {
+            foreach ($items as $item) {
+                $this->hashs[$item] = $filepath;
+            }
+        }
     }
 }
