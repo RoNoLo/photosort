@@ -112,12 +112,18 @@ class SortCommand extends AppBaseCommand
             }
 
             if ($file->getSize() === 0) {
-                $this->log[$this->currentFile->getPathname()] = 'skipped because the filesize was 0 bytes';
+                $this->log[$this->currentFile->getPathname()] = 'Skipped because the filesize was 0 bytes';
                 $this->skipped++;
+                $this->total++;
+
                 continue;
             }
 
             $this->currentFile = $file;
+
+            if ($output->isVerbose()) {
+                $output->writeln("Image: " . $file->getBasename());
+            }
 
             if ($this->hashFile) {
                 try {
@@ -127,16 +133,18 @@ class SortCommand extends AppBaseCommand
                         if (isset($this->hashs[$hash])) {
                             $this->log[$file->getPathname()] = 'Identical to ' . $this->hashs[$hash] . ' (found via duplicates hash)';
                             $this->identical++;
+
+                            if ($output->isVerbose()) {
+                                $output->writeln("Skipped! Identical found at: " . $this->hashs[$hash]);
+                            }
+
+                            $this->total++;
                             continue 2;
                         }
                     }
                 } catch (\Exception $e) {
                     ; // Do nothing
                 }
-            }
-
-            if ($output->isVerbose()) {
-                $output->writeln("Image: " . $file->getBasename());
             }
 
             $imageDestinationFilePath = $this->buildDestinationPath($file);
@@ -164,7 +172,7 @@ class SortCommand extends AppBaseCommand
 
         $this->writeLogfile();
 
-        if ($this->hashFile) {
+        if ($this->hashFile && $this->copied > 0) {
             // Backup first
             $this->filesystem->copy($this->hashFile, $this->hashFile . '.' . date('YmdHis') . '.bak');
             $this->writeJsonFile($this->hashFile, $this->hashsOriginal);
