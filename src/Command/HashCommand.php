@@ -38,6 +38,9 @@ class HashCommand extends AppBaseCommand
     /** @var string[] */
     private $fileMask;
 
+    /** @var bool */
+    private $update = false;
+
     public function __construct(HashService $hashService)
     {
         $this->hasher = $hashService;
@@ -53,6 +56,7 @@ class HashCommand extends AppBaseCommand
         $this->addArgument('source-path', InputArgument::REQUIRED, 'Source root path');
         $this->addOption('output-file', 'o', InputOption::VALUE_REQUIRED, 'Path to output JSON file (default: will write in source-path)', null);
         $this->addOption('file-mask', 'm', InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'List of Finder Component compatible name filter (separated by space). Default is an common images only definition. Set to "*.*" to hash everything.', []);
+        $this->addOption('update', null, InputOption::VALUE_NONE, 'This will update the hash-file. It removes not existing file hashes and adds newly found files to the hash-file.');
     }
 
     /**
@@ -114,6 +118,7 @@ class HashCommand extends AppBaseCommand
                 // We just ignore the - may be wrong - extensioned file
                 continue;
             }
+
             $hashs[$filePath] = $result;
 
             $countStatistic = "";
@@ -141,6 +146,36 @@ class HashCommand extends AppBaseCommand
 
         if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
             $progressBar->finish();
+        }
+
+        // If we are in update mode, we will also check if every file from the hash-file still exists.
+        if ($this->update && count($hashs)) {
+            if ($this->output->isVerbose()) {
+                $this->output->writeln('Checking hashfile for removed files');
+            }
+
+            if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
+                $progressBar = new ProgressBar($output, count($hashs));
+                $progressBar->start();
+            }
+
+            foreach ($hashs as $filePath => $ignore) {
+                if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
+                    $progressBar->advance();
+                }
+
+                if (!$this->filesystem->exists($filePath)) {
+                    if ($this->output->isVerbose()) {
+                        $this->output->writeln('Removing: ' . $filePath);
+                    }
+
+                    unset($hashs[$filePath]);
+                }
+            }
+
+            if ($output->getVerbosity() == OutputInterface::VERBOSITY_NORMAL) {
+                $progressBar->finish();
+            }
         }
 
         $this->writeJsonFile($outputFile, $hashs);
@@ -179,10 +214,12 @@ class HashCommand extends AppBaseCommand
         $this->sourcePath = $input->getArgument('source-path');
         $this->outputFile = $input->getOption('output-file');
         $this->fileMask = $input->getOption('file-mask');
+        $this->update = $input->getOption('update');
 
         $this->ensureSource();
         $this->ensureOutput();
         $this->ensureFileMask();
+        $this->ensureUpdate();
     }
 
     private function ensureSource()
@@ -233,5 +270,20 @@ class HashCommand extends AppBaseCommand
         if (!count($this->fileMask)) {
             $this->fileMask = ["*.jpg", "*.jpeg", "*.JPG", "*.tif", "*.tiff", "*.png", "*.gif", "*.raw", "*.bmp"];
         }
+    }
+
+    private function ensureUpdate()
+    {
+        if (!$this->update) {
+            return;
+        }
+
+        $outputFile = $this->ensureOutputFile();
+
+        if ($this->filesystem->exists($outputFile) && is_file($outputFile)) {
+            return;
+        }
+
+        throw new InvalidOptionException("The --update option expects an already existing hash-file. Nothing found.");
     }
 }
