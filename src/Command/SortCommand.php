@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Service\HashService;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -103,86 +104,92 @@ class SortCommand extends AppBaseCommand
         $this->persistInput($input, $output);
         $this->persistArgs($input);
 
-        $files = $this->findFiles();
+        try {
+            $files = $this->findFiles();
 
-        /** @var \SplFileInfo $file */
-        foreach ($files as $file) {
-            if ($file->isDir()) {
-                continue;
-            }
+            /** @var \SplFileInfo $file */
+            foreach ($files as $file) {
+                if ($file->isDir()) {
+                    continue;
+                }
 
-            if ($file->getSize() === 0) {
-                $this->log[$this->currentFile->getPathname()] = 'Skipped because the filesize was 0 bytes';
-                $this->skipped++;
-                $this->total++;
+                if ($file->getSize() === 0) {
+                    $this->log[$this->currentFile->getPathname()] = 'Skipped because the filesize was 0 bytes';
+                    $this->skipped++;
+                    $this->total++;
 
-                continue;
-            }
+                    continue;
+                }
 
-            $this->currentFile = $file;
+                $this->currentFile = $file;
 
-            if ($output->isVerbose()) {
-                $output->writeln("Image: " . $file->getBasename());
-            }
+                if ($output->isVerbose()) {
+                    $output->writeln("Image: ".$file->getBasename());
+                }
 
-            if ($this->hashFile) {
-                try {
-                    $hashs = $this->hasher->hashFile($file->getPathname(), true);
+                if ($this->hashFile) {
+                    try {
+                        $hashs = $this->hasher->hashFile($file->getPathname(), true);
 
-                    foreach ($hashs as $type => $hash) {
-                        if (isset($this->hashs[$hash])) {
-                            $this->log[$file->getPathname()] = 'Identical to ' . $this->hashs[$hash] . ' (found via duplicates hash)';
-                            $this->identical++;
+                        foreach ($hashs as $type => $hash) {
+                            if (isset($this->hashs[$hash])) {
+                                $this->log[$file->getPathname()] = 'Identical to '.$this->hashs[$hash].' (found via duplicates hash)';
+                                $this->identical++;
 
-                            if ($output->isVerbose()) {
-                                $output->writeln("Skipped! Identical found at: " . $this->hashs[$hash]);
+                                if ($output->isVerbose()) {
+                                    $output->writeln("Skipped! Identical found at: ".$this->hashs[$hash]);
+                                }
+
+                                $this->total++;
+                                continue 2;
                             }
-
-                            $this->total++;
-                            continue 2;
                         }
+                    } catch (\Exception $e) {
+                        ; // Do nothing
                     }
-                } catch (\Exception $e) {
-                    ; // Do nothing
+                }
+
+                $imageDestinationFilePath = $this->buildDestinationPath($file);
+
+                // If we use an hash-file, we will add new files here.
+                if ($this->hashFile) {
+                    $this->hashsOriginal[$imageDestinationFilePath] = $hashs;
+
+                    // Here we add it to the list we match against in the ongoing sort process
+                    foreach ($hashs as $type => $hash) {
+                        $this->hashs[$hash] = $imageDestinationFilePath;
+                    }
+                }
+
+                if ($output->isVeryVerbose()) {
+                    $output->writeln("Destination Path: ".$imageDestinationFilePath);
+                }
+
+                $imageSourceFilePath = $file->getRealPath();
+
+                $this->copyFile($imageSourceFilePath, $imageDestinationFilePath);
+
+                $this->total++;
+            }
+
+            $this->writeLogfile();
+
+            if ($this->hashFile && $this->copied > 0) {
+                // Backup first
+                $this->filesystem->copy($this->hashFile, $this->hashFile.'.'.date('YmdHis').'.bak');
+                $this->writeJsonFile($this->hashFile, $this->hashsOriginal);
+
+                if ($output->isVerbose()) {
+                    $output->writeln('Updated: '.$this->hashFile);
                 }
             }
+        } catch (\Exception $e) {
+            $output->writeln($e->getMessage());
 
-            $imageDestinationFilePath = $this->buildDestinationPath($file);
-
-            // If we use an hash-file, we will add new files here.
-            if ($this->hashFile) {
-                $this->hashsOriginal[$imageDestinationFilePath] = $hashs;
-
-                // Here we add it to the list we match against in the ongoing sort process
-                foreach ($hashs as $type => $hash) {
-                    $this->hashs[$hash] = $imageDestinationFilePath;
-                }
-            }
-
-            if ($output->isVeryVerbose()) {
-                $output->writeln("Destination Path: " . $imageDestinationFilePath);
-            }
-
-            $imageSourceFilePath = $file->getRealPath();
-
-            $this->copyFile($imageSourceFilePath, $imageDestinationFilePath);
-
-            $this->total++;
+            return Command::FAILURE;
         }
 
-        $this->writeLogfile();
-
-        if ($this->hashFile && $this->copied > 0) {
-            // Backup first
-            $this->filesystem->copy($this->hashFile, $this->hashFile . '.' . date('YmdHis') . '.bak');
-            $this->writeJsonFile($this->hashFile, $this->hashsOriginal);
-
-            if ($output->isVerbose()) {
-                $output->writeln('Updated: ' . $this->hashFile);
-            }
-        }
-
-        return 0;
+        return Command::SUCCESS;
     }
 
     private function buildDestinationPath(\SplFileInfo $file)
