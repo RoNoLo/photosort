@@ -7,18 +7,20 @@ use Symfony\Component\Finder\Finder;
 
 class HashService
 {
-    private $imageHashsEnabled = false;
+    private bool $imageHashsEnabled = false;
 
     public function __construct()
     {
-        $this->ensureImagickExtension();
+        if (extension_loaded('imagick')) {
+            $this->imageHashsEnabled = true;
+        }
     }
 
-    public function hashFile(string $filePath, $imageHash = false)
+    public function hashFile(string $filePath, $imageHash = false): array
     {
-        $this->ensureFileExists($filePath);
-
         $filePath = realpath($filePath);
+
+        $this->ensureFileExists($filePath);
 
         $hashs = [];
         $hashs['sha1'] = sha1_file($filePath);
@@ -35,7 +37,7 @@ class HashService
         return $hashs;
     }
 
-    public function hashFiles(Finder $files, $imageHash = false)
+    public function hashFiles(Finder $files, $imageHash = false): array
     {
         $hashs = [];
 
@@ -85,14 +87,12 @@ class HashService
             throw new \Exception("The file `{$filePath}` does not exists.");
         }
 
-        $filePath = realpath($filePath);
-
         if (!is_file($filePath)) {
             throw new \Exception("The path `{$filePath}` is not a file.");
         }
     }
 
-    private function ensureSupportedImage(string $filePath, bool $imageHash)
+    private function ensureSupportedImage(string $filePath, bool $imageHash): bool
     {
         if (!$imageHash) {
             return false;
@@ -105,12 +105,5 @@ class HashService
         }
 
         return true;
-    }
-
-    private function ensureImagickExtension()
-    {
-        if (extension_loaded('imagick')) {
-            $this->imageHashsEnabled = true;
-        }
     }
 }

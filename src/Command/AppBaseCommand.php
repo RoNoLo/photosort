@@ -10,17 +10,13 @@ use Symfony\Component\Stopwatch\Stopwatch;
 
 abstract class AppBaseCommand extends Command
 {
-    /** @var Filesystem */
-    protected $filesystem;
+    protected Filesystem $filesystem;
 
-    /** @var InputInterface */
-    protected $input;
+    protected InputInterface $input;
 
-    /** @var OutputInterface */
-    protected $output;
+    protected OutputInterface $output;
 
-    /** @var Stopwatch */
-    protected $stopwatch;
+    protected Stopwatch $stopwatch;
 
     public function __construct()
     {
@@ -49,7 +45,7 @@ abstract class AppBaseCommand extends Command
         $this->output = $output;
     }
 
-    protected function readJsonFilesAndMerge($filePaths)
+    protected function readJsonFilesAndMerge($filePaths): array
     {
         $data = [];
 

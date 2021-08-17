@@ -19,10 +19,9 @@ class MergeCommand extends AppBaseCommand
     protected static $defaultName = 'app:merge';
 
     /** @var string[] */
-    private $sources;
+    private array $sources;
 
-    /** @var string */
-    private $outputFile;
+    private string $outputFile;
 
     protected function configure()
     {

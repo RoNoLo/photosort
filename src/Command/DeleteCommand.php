@@ -25,22 +25,19 @@ class DeleteCommand extends AppBaseCommand
 
     protected static $defaultName = 'app:delete';
 
-    /** @var string */
-    private $sourceFile;
+    private string $sourceFile;
 
-    /** @var string */
-    private $recycleBinPath;
+    private string $recycleBinPath;
 
-    /** @var array */
-    private $log;
+    private array $log;
 
     protected function configure()
     {
         $this->setDescription('Deletes duplicated files.');
-        $this->setHelp("Deletes duplicated files in a interactive fashion.\nThe duplicates should come from a photosort_duplicates.json file created by the app:dups command.\nWith the option --no-interaction always the first file in the list of candidates will be kept, the other will be deleted or moved to the recycle-bin (option --recycle-bin).");
+        $this->setHelp("Moves duplicated files in a interactive fashion.\nThe duplicates should come from a photosort_duplicates.json file created by the app:dups command.\nWith the option --no-interaction always the first file in the list of candidates will be kept. The other will be moved to the recycle-bin.");
 
         $this->addArgument('source-file', InputArgument::REQUIRED, 'Path to duplicates JSON file (created by app:dups).');
-        $this->addOption('recycle-bin', 'b', InputOption::VALUE_OPTIONAL, 'Instead of deleting the files will be moved to that recycle directory.', null);
+        $this->addArgument('recycle-bin', InputArgument::REQUIRED, 'Instead of deleting the files will be moved to that recycle directory.');
     }
 
     /**
@@ -97,25 +94,11 @@ class DeleteCommand extends AppBaseCommand
                 $this->output->writeln("File to keep: " . $fileToKeep);
             }
 
-            $this->deleteFiles($filesToDelete);
+            $this->moveFilesToRecycleBin($filesToDelete);
         }
 
         if ($this->input->getOption('no-interaction')) {
             $progressBar->finish();
-        }
-    }
-
-    private function deleteFiles($files)
-    {
-        if ($this->recycleBinPath) {
-            $this->moveFilesToRecycleBin($files);
-
-            return;
-        }
-
-        foreach ($files as $file) {
-            $this->log['deleted'][] = $file;
-            $this->deleteFile($file);
         }
     }
 
@@ -129,8 +112,6 @@ class DeleteCommand extends AppBaseCommand
      * - with the known extension
      * - is not a symbolic link
      * - file has to exist beforehand
-     *
-     * @param $filePath
      */
     private function deleteFile(string $filePath)
     {
@@ -152,13 +133,13 @@ class DeleteCommand extends AppBaseCommand
             $this->output->writeln("Deleting: " . $filePath);
         }
 
-        $this->filesystem->remove($filePath);
+        // $this->filesystem->remove($filePath);
     }
 
     private function persistArgs(InputInterface $input)
     {
         $this->sourceFile = $input->getArgument('source-file');
-        $this->recycleBinPath = $input->getOption('recycle-bin');
+        $this->recycleBinPath = $input->getArgument('recycle-bin');
 
         $this->ensureDuplicatesSourceExists();
         $this->ensureRecycleBin();
@@ -186,7 +167,18 @@ class DeleteCommand extends AppBaseCommand
     {
         $date = date('Ymd');
 
+        $sourceFileBasename = basename($this->sourceFile);
+
         foreach ($files as $file) {
+            $dirname = dirname($file);
+
+            if (strpos($dirname, $sourceFileBasename) !== 0) {
+                if ($this->output->isVerbose()) {
+                    $this->output->writeln("The file: $file has not the same dirname root as the JSON source-file. Therefore the recycle move will not work. Skipped!");
+                    continue;
+                }
+            }
+
             $filename = basename($file);
 
             $recycleFilePath = $this->recycleBinPath . DIRECTORY_SEPARATOR . $date . DIRECTORY_SEPARATOR . $filename;
@@ -209,7 +201,7 @@ class DeleteCommand extends AppBaseCommand
         }
     }
 
-    private function renameDestinationFile(string $filePath)
+    private function renameDestinationFile(string $filePath): string
     {
         $breaker = 10000;
 

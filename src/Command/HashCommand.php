@@ -26,20 +26,17 @@ class HashCommand extends AppBaseCommand
 
     protected static $defaultName = 'app:hash';
 
-    /** @var HashService */
-    private $hasher;
+    private HashService $hasher;
 
-    /** @var string */
-    private $sourcePath;
+    private string $sourcePath;
 
     /** @var string */
     private $outputFile;
 
     /** @var string[] */
-    private $fileMask;
+    private array $fileMask;
 
-    /** @var bool */
-    private $update = false;
+    private bool $update = false;
 
     public function __construct(HashService $hashService)
     {
@@ -187,7 +184,7 @@ class HashCommand extends AppBaseCommand
         return 0;
     }
 
-    private function ensureOutputFile()
+    private function ensureOutputFile(): string
     {
         if (is_null($this->outputFile)) {
             return $this->sourcePath . DIRECTORY_SEPARATOR . self::HASH_OUTPUT_FILENAME;
@@ -250,15 +247,12 @@ class HashCommand extends AppBaseCommand
         throw new InvalidOptionException("The --output-file option file path does not exist or is not accessible.");
     }
 
-    private function fetchFiles()
+    private function fetchFiles(): Finder
     {
-        $finder = Finder::create()
+        return Finder::create()
             ->files()
             ->name($this->fileMask)
-            ->in($this->sourcePath)
-        ;
-
-        return $finder;
+            ->in($this->sourcePath);
     }
 
     private function ensureFileMask()

@@ -16,14 +16,12 @@ class DupsCommand extends AppBaseCommand
 
     protected static $defaultName = 'app:dups';
 
-    /** @var HashService */
-    private $hasher;
+    private HashService $hasher;
 
     /** @var string[] */
-    private $sources;
+    private array $sources;
 
-    /** @var bool */
-    private $info;
+    private bool $info;
 
     public function __construct(HashService $hashService)
     {
@@ -62,7 +60,7 @@ class DupsCommand extends AppBaseCommand
         return 0;
     }
 
-    private function findDuplicates(&$data)
+    private function findDuplicates(&$data): array
     {
         // First collecting all files per hash
         [$sha1, $signatures] = $this->transformDataByDigests($data);
@@ -98,7 +96,7 @@ class DupsCommand extends AppBaseCommand
         }
     }
 
-    private function transformDataByDigests(&$data)
+    private function transformDataByDigests(&$data): array
     {
         $sha1 = [];
         $signatures = [];
@@ -140,7 +138,7 @@ class DupsCommand extends AppBaseCommand
         $this->output->write("\n");
     }
 
-    private function mergeDigestLists($sha1, $signatures)
+    private function mergeDigestLists($sha1, $signatures): array
     {
         // Time to merge the results
         $duplicates = array_values($sha1);

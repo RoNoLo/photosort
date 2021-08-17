@@ -96,6 +96,7 @@ class SortCommand extends AppBaseCommand
     /**
      * @param InputInterface $input
      * @param OutputInterface $output
+     *
      * @return int|void|null
      * @throws \Exception
      */
@@ -416,7 +417,8 @@ class SortCommand extends AppBaseCommand
             throw new InvalidArgumentException("The directory `{$directoryPath}` does not exists.");
         }
 
-        if (!is_dir($directoryPath) || !is_readable($directoryPath)) {
+        /** No idea why, but on my windows the is_readable returns false, even it the rest works fine. */
+        if (!is_dir($directoryPath)) /* || !is_readable($directoryPath)) */ {
             throw new InvalidArgumentException("The directory `{$directoryPath}` is not readable.");
         }
     }
