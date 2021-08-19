@@ -27,6 +27,8 @@ class DeleteCommand extends AppBaseCommand
 
     private string $sourceFile;
 
+    private string $sourceFilePath;
+
     private string $recycleBinPath;
 
     private array $log;
@@ -133,12 +135,13 @@ class DeleteCommand extends AppBaseCommand
             $this->output->writeln("Deleting: " . $filePath);
         }
 
-        // $this->filesystem->remove($filePath);
+        $this->filesystem->remove($filePath);
     }
 
     private function persistArgs(InputInterface $input)
     {
         $this->sourceFile = $input->getArgument('source-file');
+        $this->sourceFilePath = realpath(dirname($this->sourceFile));
         $this->recycleBinPath = $input->getArgument('recycle-bin');
 
         $this->ensureDuplicatesSourceExists();
@@ -165,23 +168,19 @@ class DeleteCommand extends AppBaseCommand
 
     private function moveFilesToRecycleBin(array $files)
     {
-        $date = date('Ymd');
-
-        $sourceFileBasename = basename($this->sourceFile);
-
         foreach ($files as $file) {
             $dirname = dirname($file);
 
-            if (strpos($dirname, $sourceFileBasename) !== 0) {
+            if (strpos($dirname, $this->sourceFilePath) !== 0) {
                 if ($this->output->isVerbose()) {
                     $this->output->writeln("The file: $file has not the same dirname root as the JSON source-file. Therefore the recycle move will not work. Skipped!");
                     continue;
                 }
             }
 
-            $filename = basename($file);
+            $fileSubPath = str_replace($this->sourceFilePath, '', $file);
 
-            $recycleFilePath = $this->recycleBinPath . DIRECTORY_SEPARATOR . $date . DIRECTORY_SEPARATOR . $filename;
+            $recycleFilePath = $this->recycleBinPath . $fileSubPath;
 
             if ($this->filesystem->exists($recycleFilePath)) {
                 $recycleFilePath = $this->renameDestinationFile($recycleFilePath);
@@ -205,7 +204,6 @@ class DeleteCommand extends AppBaseCommand
     {
         $breaker = 10000;
 
-        $destinationFilePath = null;
         do {
             $pathinfo = pathinfo($filePath);
 
